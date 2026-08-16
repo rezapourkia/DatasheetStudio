@@ -5,7 +5,7 @@
 - Project name: Datasheet Studio
 - Project path: `~/DatasheetStudio`
 - Operating system: Windows
-- Terminal: Git Bash
+- Terminal: Git Bash (or VS Code integrated terminal)
 - Git branch: `main`
 
 ## Python Environment
@@ -31,6 +31,14 @@ After activation, the terminal prompt should begin with:
 
 ## Install Dependencies
 
+Install the project in editable mode (this also installs the runtime dependencies declared in `pyproject.toml`):
+
+```bash
+python -m pip install -e .
+```
+
+Or install the core packages directly:
+
 ```bash
 python -m pip install PySide6 PyMuPDF
 ```
@@ -48,5 +56,7 @@ python -c "import fitz; print(fitz.VersionBind)"
 From the project root:
 
 ```bash
-python main.py
+python -m datasheet_studio.app
 ```
+
+> The startup command is `python -m datasheet_studio.app`. Do not use `python main.py`; the project uses the `src/` layout and imports the `datasheet_studio` package.

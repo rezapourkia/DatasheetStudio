@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Source Type="DipTrace_Pcb_Plugin"
+        Name="My PCB Plugin"
+        ExeFile="MyPlugin.exe"
+        Hint="Describe the operation">
+  <Settings>
+    <ExpMode>Partial</ExpMode>
+    <ImpMode>Edit</ImpMode>
+    <Comp>None</Comp>
+    <Net>None</Net>
+    <Shape>None</Shape>
+    <Plane>None</Plane>
+    <Table>None</Table>
+    <Dim>None</Dim>
+    <Diff>None</Diff>
+    <Board>None</Board>
+    <Trace>None</Trace>
+    <Stamp>No</Stamp>
+  </Settings>
+</Source>
+

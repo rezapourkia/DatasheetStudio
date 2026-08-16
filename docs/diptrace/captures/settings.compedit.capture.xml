@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Source Type="DipTrace_CompEdit_Plugin"
+        Name="Capture Component XML"
+        ExeFile="XmlCapture.exe"
+        Hint="Export the current component to docs\diptrace\captures\plugin_capture.xml">
+  <Settings>
+    <ExpMode>Component All</ExpMode>
+    <ImpMode>None</ImpMode>
+    <Comp>All</Comp>
+    <Pin>All</Pin>
+    <Pattern>No</Pattern>
+    <Shape>All</Shape>
+    <Attributes>Yes</Attributes>
+  </Settings>
+</Source>

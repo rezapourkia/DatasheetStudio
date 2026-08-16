@@ -16,6 +16,15 @@ Thumbs.db
 
 # Application-generated files
 *.log
+*.elixml
 temp/
 build/
 dist/
+
+# Packaging artifacts
+*.egg-info/
+
+# Test / tool caches
+.pytest_cache/
+.coverage
+htmlcov/

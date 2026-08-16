@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Source Type="DipTrace_CompEdit_Plugin"
+        Name="My Component Editor Plugin"
+        ExeFile="MyPlugin.exe"
+        Hint="Describe the operation">
+  <Settings>
+    <ExpMode>Component Partial</ExpMode>
+    <ImpMode>Edit</ImpMode>
+    <Comp>None</Comp>
+    <Pin>None</Pin>
+    <Pattern>No</Pattern>
+    <Shape>None</Shape>
+    <Attributes>No</Attributes>
+  </Settings>
+</Source>
+

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Source Type="DipTrace_PattEdit_Plugin"
+        Name="My Pattern Editor Plugin"
+        ExeFile="MyPlugin.exe"
+        Hint="Describe the operation">
+  <Settings>
+    <ExpMode>Component Partial</ExpMode>
+    <ImpMode>Edit</ImpMode>
+    <Comp>None</Comp>
+    <Pad>None</Pad>
+    <Shape>None</Shape>
+    <Attributes>No</Attributes>
+    <Hole>None</Hole>
+    <Dim>None</Dim>
+  </Settings>
+</Source>
+

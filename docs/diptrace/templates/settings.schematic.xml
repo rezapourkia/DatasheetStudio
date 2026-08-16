@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Source Type="DipTrace_Schematic_Plugin"
+        Name="My Schematic Plugin"
+        ExeFile="MyPlugin.exe"
+        Hint="Describe the operation">
+  <Settings>
+    <ExpMode>Partial</ExpMode>
+    <ImpMode>Edit</ImpMode>
+    <Comp>None</Comp>
+    <Net>None</Net>
+    <Shape>None</Shape>
+    <Bus>None</Bus>
+    <Table>None</Table>
+    <BusConnectors>None</BusConnectors>
+    <Diff>None</Diff>
+    <Dim>None</Dim>
+    <Board>None</Board>
+    <Trace>None</Trace>
+    <Stamp>No</Stamp>
+    <Patterns>No</Patterns>
+  </Settings>
+</Source>
+
