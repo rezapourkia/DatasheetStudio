@@ -154,6 +154,91 @@ def test_build_library_odd_pin_count_and_ball_ids():
     assert root.find(".//Part").find("Value").text == "SENSOR-1"
 
 
+def test_build_library_places_power_pins_top_and_bottom():
+    """Small mixed symbols put supply pins on the top and ground on the bottom."""
+    rows = [
+        {"pin": "1", "name": "SDA"},
+        {"pin": "2", "name": "VDD"},
+        {"pin": "3", "name": "GND"},
+        {"pin": "4", "name": "SCL"},
+    ]
+    root = ET.fromstring(build_component_library(rows, component_name="PWR"))
+    part = root.find(".//Part")
+    assert part is not None
+    # Part Width/Height describe the body rectangle only (probe.elixml),
+    # never the pin-stub overhang.
+    assert part.get("Width") == "400"
+    assert part.get("Height") == "300"
+
+    pins = part.findall("Pins/Pin")
+    by_name = {pin.findtext("Name"): pin for pin in pins}
+    vdd = by_name["VDD"]
+    gnd = by_name["GND"]
+    assert vdd.get("Orientation") == "270"
+    assert vdd.get("X") == "0"
+    assert vdd.get("Y") == "250"
+    assert gnd.get("Orientation") == "90"
+    assert gnd.get("X") == "0"
+    assert gnd.get("Y") == "-250"
+
+    # The body rectangle matches the Width/Height attributes.
+    rect = next(
+        shape
+        for shape in part.findall("Shapes/Shape")
+        if shape.get("Type") == "Rectangle"
+    )
+    rect_points = {
+        point.get("X"): point.get("Y") for point in rect.findall("Points/Point")
+    }
+    assert rect_points == {"-200": "150", "200": "-150"}
+
+    # Pin name sits outside the free tip, the number between tip and body, and
+    # both stay horizontal — the top/bottom mirror of the probe.elixml side
+    # convention. The 65/25 mil split keeps the two labels far apart.
+    assert vdd.get("NameYShift") == "65"
+    assert vdd.get("NumYShift") == "-25"
+    assert vdd.get("NameOrientation") == "0"
+    assert vdd.get("NumOrientation") == "0"
+    assert gnd.get("NameYShift") == "-65"
+    assert gnd.get("NumYShift") == "25"
+    assert gnd.get("NameOrientation") == "0"
+    assert gnd.get("NumOrientation") == "0"
+
+    # Part Name/Value text is pushed beyond the top/bottom pin name labels so
+    # it cannot overlap a power pin or its label.
+    text_y = {
+        shape.get("TextShow"): float(shape.find("Points/Point").get("Y"))
+        for shape in part.findall("Shapes/Shape")
+        if shape.get("Type") == "Text"
+    }
+    assert text_y["Name"] > 250 + 65
+    assert text_y["Value"] < -(250 + 65)
+
+
+def test_build_library_duplicate_ground_pins_do_not_overlap():
+    """Two ground pins share the bottom edge at distinct positions."""
+    rows = [
+        {"pin": "1", "name": "VDD"},
+        {"pin": "2", "name": "GND"},
+        {"pin": "3", "name": "GND"},
+        {"pin": "4", "name": "SDA"},
+        {"pin": "5", "name": "SCL"},
+    ]
+    root = ET.fromstring(build_component_library(rows, component_name="PWR2"))
+    pins = root.findall(".//Pins/Pin")
+
+    # Duplicate-named power pins must not collapse onto the same slot.
+    grounds = [pin for pin in pins if pin.findtext("Name") == "GND"]
+    assert len(grounds) == 2
+    assert [g.get("Orientation") for g in grounds] == ["90", "90"]
+    assert [g.get("Y") for g in grounds] == ["-250", "-250"]
+    assert len({g.get("X") for g in grounds}) == 2
+
+    # No two pins anywhere share a connection point.
+    points = [(pin.get("X"), pin.get("Y")) for pin in pins]
+    assert len(points) == len(set(points))
+
+
 def test_pin_row_validation_expands_tied_pad_ranges():
     """A tied-pad range becomes one symbol pin per physical package pad."""
     rows, errors = validate_pin_rows(

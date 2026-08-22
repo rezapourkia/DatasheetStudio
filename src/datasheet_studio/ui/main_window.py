@@ -1404,7 +1404,12 @@ class MainWindow(QMainWindow):
             )
             return
         dialog = SymbolCreatorDialog(
-            self, self._reader, self._pdf_info.path, self._pdf_info.title
+            self,
+            self._reader,
+            self._pdf_info.path,
+            self._pdf_info.title,
+            self._ai_service,
+            symbol_pages=sorted(self._selected_pages),
         )
         dialog.exec()
 

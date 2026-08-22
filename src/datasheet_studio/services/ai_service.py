@@ -174,9 +174,10 @@ class AIService:
             "model": self.model or "gpt-3.5-turbo",
             "messages": messages,
             "stream": False,
+            "temperature": 0.2,
             # Allow long answers (e.g. a full 48-pin pinout table) without the
             # provider truncating them at its default output limit.
-            "max_tokens": 4096,
+            "max_tokens": 8192,
         }
         if tools:
             payload["tools"] = tools
@@ -193,6 +194,14 @@ class AIService:
             raise AIServiceError(
                 f"Unexpected response from provider: {str(data)[:300]}"
             )
+        LOG.info(
+            "AI raw response: message_fields=%s",
+            sorted(message.keys()),
+        )
+        LOG.info(
+            "AI response preview: %s",
+            str(self._extract_message_content(message))[:500],
+        )
 
         for _ in range(8):
             tool_calls = message.get("tool_calls")
@@ -204,7 +213,7 @@ class AIService:
                 messages.append(
                     {
                         "role": "assistant",
-                        "content": message.get("content") or "",
+                        "content": self._extract_message_content(message) or "",
                         "tool_calls": tool_calls,
                     }
                 )
@@ -236,9 +245,44 @@ class AIService:
                         f"Unexpected response from provider: {str(data)[:300]}"
                     )
                 continue
-            return message.get("content") or ""
 
-        raise AIServiceError("Model did not finish after multiple tool rounds.")
+            content = self._extract_message_content(message)
+            if isinstance(content, str) and content.strip():
+                return content.strip()
+            if len(str(content).strip()) > 0:
+                return str(content).strip()
+
+        content = self._extract_message_content(message)
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+        if len(str(content).strip()) > 0:
+            return str(content).strip()
+        raise AIServiceError("Model returned an empty response.")
+
+    @staticmethod
+    def _extract_message_content(message: Dict[str, Any]) -> str:
+        """Extract plain text content from OpenAI-compatible chat messages."""
+        content = message.get("content")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+                    continue
+                block_content = item.get("content")
+                if isinstance(block_content, str):
+                    parts.append(block_content)
+            if parts:
+                return "\n".join(parts).strip()
+        return ""
 
     def _call_anthropic(self, messages: List[Dict[str, str]]) -> str:
         base = self._effective_base_url()
@@ -338,4 +382,3 @@ class AIService:
             raise AIServiceError(f"Network error contacting provider: {reason}") from exc
         except TimeoutError:
             raise AIServiceError("Request timed out contacting provider.") from None
-

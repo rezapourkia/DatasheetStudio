@@ -247,7 +247,9 @@ class PdfReader:
     # Pinout / alternate-function table extraction
     # ------------------------------------------------------------------
 
-    def get_all_pinouts(self, path: str | Path) -> dict[str, list[dict]]:
+    def get_all_pinouts(
+        self, path: str | Path, scan_pages: list[int] | None = None
+    ) -> dict[str, list[dict]]:
         """Extract the pinout tables for every package of the datasheet.
 
         Returns a dict mapping a package name (e.g. ``"LQFP48"``) to a list of
@@ -256,8 +258,9 @@ class PdfReader:
         number (e.g. ``AF4=I2C2_SMBA``) when the datasheet's alternate-function
         table is available.
 
-        The pin-definition section is scanned once for all packages, so listing
-        packages and extracting several pinouts is fast.
+        Optional ``scan_pages`` (1-based page numbers) limits extraction to a
+        specific set of pages. Without this argument the entire document is
+        scanned as before.
         """
         file_path = Path(path)
         try:
@@ -277,15 +280,23 @@ class PdfReader:
                     )
                 return tables_cache[page_no]
 
-            raw = self._extract_all_pinouts(doc, tables_loader)
+            scan_pages = self._normalize_scan_pages(doc.page_count, scan_pages)
+
+            raw = self._extract_all_pinouts(doc, tables_loader, scan_pages=scan_pages)
             if not raw:
                 # Non-ST datasheets (TI, Maxim, ...) often have no TOC and no
                 # package-column pin table; fall back to the generic detector.
-                raw = self._extract_pinout_generic(doc, tables_loader)
+                raw = self._extract_pinout_generic(
+                    doc,
+                    tables_loader,
+                    page_numbers=scan_pages,
+                )
             if not raw:
                 return {}
 
-            af_map = self._extract_alternate_function_map(doc, tables_loader)
+            af_map = self._extract_alternate_function_map(
+                doc, tables_loader, page_numbers=scan_pages
+            )
             af_by_base = {
                 self._base_pin_name(name): mapping
                 for name, mapping in af_map.items()
@@ -318,6 +329,23 @@ class PdfReader:
             return result
         finally:
             doc.close()
+
+    @staticmethod
+    def _normalize_scan_pages(
+        page_count: int, scan_pages: list[int] | None
+    ) -> list[int] | None:
+        """Normalize user page input to a sorted, deduplicated 1-based list."""
+        if not scan_pages:
+            return None
+        normalized: list[int] = []
+        for raw in scan_pages:
+            try:
+                page = int(raw)
+            except (TypeError, ValueError):
+                continue
+            if 1 <= page <= page_count:
+                normalized.append(page)
+        return sorted(set(normalized))
 
     @staticmethod
     def package_pin_count(package: str, rows: list[dict]) -> int:
@@ -449,7 +477,7 @@ class PdfReader:
         return int(match.group(1)) if match else 0
 
     def _extract_all_pinouts(
-        self, doc, tables_loader=None
+        self, doc, tables_loader=None, scan_pages: list[int] | None = None
     ) -> dict[str, list[dict]]:
         """Scan the pin-definition section once and return rows for every package.
 
@@ -459,20 +487,21 @@ class PdfReader:
         (numeric pin number + pin-name pattern) so unrelated tables on nearby
         pages are never picked up. Returns ``{normalized_package: [rows]}``.
         ``tables_loader`` (optional) is a callable ``page_no -> tables`` used to
-        share a ``find_tables`` cache with the alternate-function scan.
+        share a ``find_tables`` cache with the alternate-function scan. If
+        ``scan_pages`` is given, only those pages are scanned.
         """
-        start, end = self._section_page_range(
-            doc,
-            ["pin definition", "pin assignment"],
-            ["pin description", "pinouts and pin", "pinouts, pin"],
-        )
-        no_toc_section = (
-            self._find_section_page(doc, ["pin definition", "pin assignment"]) is None
-            and self._find_section_page(
-                doc, ["pin description", "pinouts and pin", "pinouts, pin"]
+        scan_pages = scan_pages or None
+        full_scan = scan_pages is None
+        if full_scan:
+            start, end = self._section_page_range(
+                doc,
+                ["pin definition", "pin assignment"],
+                ["pin description", "pinouts and pin", "pinouts, pin"],
             )
-            is None
-        )
+            page_numbers = range(start, end + 1)
+        else:
+            page_numbers = scan_pages
+
         pkg_cols: dict[str, int] = {}  # normalized package -> column index
         col_indices: tuple | None = None  # (name, type, af, additional)
         rows: dict[str, list[dict]] = {}
@@ -490,7 +519,7 @@ class PdfReader:
                 return ""
             return PdfReader._clean_cell(row[i])
 
-        for pno in range(start, end + 1):
+        for pno in page_numbers:
             rows_before = sum(len(v) for v in rows.values())
 
             for table in _tables(pno):
@@ -566,11 +595,15 @@ class PdfReader:
 
             if sum(len(v) for v in rows.values()) > rows_before:
                 empty_streak = 0
-            elif seen_table:
+            elif seen_table and full_scan:
                 empty_streak += 1
                 if empty_streak >= 5:
                     break
-            elif no_toc_section and pno - start >= 10:
+            elif (
+                full_scan
+                and isinstance(page_numbers, range)
+                and pno - page_numbers.start >= 10
+            ):
                 # No TOC section and no ST-style table in the first pages:
                 # give up quickly so the generic detector can run.
                 break
@@ -585,23 +618,33 @@ class PdfReader:
         return rows
 
     def _extract_alternate_function_map(
-        self, doc, tables_loader=None
+        self, doc, tables_loader=None, page_numbers: list[int] | None = None
     ) -> dict[str, dict[str, str]]:
         """Extract the AF0..AF15 alternate-function table.
 
         Returns a dict mapping a base pin name (e.g. ``PA0``) to a dict of
         ``AF`` labels -> function text (e.g. ``{"AF1": "TIM2 CH1", ...}``).
         ``tables_loader`` (optional) shares a ``find_tables`` cache with the
-        pin-definition scan.
+        pin-definition scan. If ``page_numbers`` is provided, only those pages
+        are scanned.
         """
-        start, end = self._section_page_range(
-            doc, ["alternate function"], ["alternate functions"]
-        )
+        full_scan = page_numbers is None
         af_map: dict[str, dict[str, str]] = {}
+        scan_pages = page_numbers
+        if scan_pages is None:
+            start, end = self._section_page_range(
+                doc, ["alternate function"], ["alternate functions"]
+            )
+            page_numbers = range(start, end + 1)
+            scan_pages = list(page_numbers)
+        else:
+            page_numbers = scan_pages
+            if not page_numbers:
+                return af_map
         seen_table = False
         empty_streak = 0
 
-        for pno in range(start, end + 1):
+        for pno in page_numbers:
             page_matched = False
 
             for table in (
@@ -646,12 +689,10 @@ class PdfReader:
 
             if page_matched:
                 empty_streak = 0
-            elif seen_table:
+            elif seen_table and full_scan:
                 empty_streak += 1
                 if empty_streak >= 5:
                     break
-            elif pno >= start + 80:
-                break
 
         return af_map
 
@@ -777,7 +818,7 @@ class PdfReader:
         return f"{family}{count}" if count else family
 
     def _extract_pinout_generic(
-        self, doc, tables_loader=None
+        self, doc, tables_loader=None, page_numbers: list[int] | None = None
     ) -> dict[str, list[dict]]:
         """Generic single-package pin-table extraction (non-ST datasheets).
 
@@ -790,7 +831,7 @@ class PdfReader:
         names may appear in either the header row or the first data row.
         Returns ``{package: [rows]}``.
         """
-        max_scan = min(doc.page_count, 40)
+        page_numbers = page_numbers or range(1, min(doc.page_count, 40) + 1)
         columns: tuple | None = None
         header_rows = 0
         rows: list[dict] = []
@@ -857,7 +898,7 @@ class PdfReader:
                 }
             )
 
-        for pno in range(1, max_scan + 1):
+        for pno in page_numbers:
             rows_before = len(rows) + sum(len(values) for values in packages.values())
             for table in _tables(pno):
                 data = table.extract()

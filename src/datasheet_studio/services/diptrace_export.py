@@ -6,8 +6,9 @@ library file containing one schematic symbol for the selected package.
 
 The generated file follows the DipTrace XML conventions documented in
 ``docs/diptrace/`` (Component Editor dialect, 5.x library format). The
-symbol is a plain ``Free``-template box: pins on the left and right sides, a
-rectangle body, and ``Name``/``Value`` text. No physical footprint (pattern)
+symbol is a plain ``Free``-template box: pins on the left and right sides (and
+top/bottom supply pins for small mixed-power symbols), a rectangle body, and
+``Name``/``Value`` text. No physical footprint (pattern)
 is attached — a datasheet pinout table does not describe the land pattern
 geometry, so a footprint must be assigned inside DipTrace afterwards.
 """
@@ -31,12 +32,61 @@ VALUE_TEXT_GAP = 60.0  # value text below the body
 PIN_NAME_FONT_SIZE = 4
 PART_TEXT_FONT_SIZE = 5
 
+# Top/bottom supply-pin layout only applies to small mixed-power symbols;
+# larger packages keep the classic two-sided IC box (left/right only).
+MIN_VERTICAL_POWER_SYMBOL_PINS = 4
+MAX_VERTICAL_POWER_SYMBOL_PINS = 12
+MAX_VERTICAL_POWER_PINS = 4
+
 # Text placement nudges relative to each pin's connection point (the free end).
-# The reference DipTrace layout keeps signal *names* away from the pin row and
-# pin *numbers* near the pin on the same side, with both labels mirrored per
-# orientation.
+# The reference DipTrace layout (docs/diptrace/captures/probe.elixml) keeps
+# signal *names* outside the pin tip and pin *numbers* on the stub near the
+# body, with both labels horizontal and mirrored per orientation.
 _NAME_OUTSET = 55.0
 _NUM_OUTSET = 40.0
+# Top/bottom pins: the name label sits beyond the free tip (outside the symbol)
+# and the number between tip and body, both horizontal like the side labels.
+_TOP_BOTTOM_NAME_OUTSET = 65.0
+_TOP_BOTTOM_NUM_OUTSET = 25.0
+# Approximate glyph height for the pin-name font size 5
+# (5 * 1000 / 76.2 mil, docs/diptrace/02_diptrace_xml_conventions.md).
+# Used to keep the part Name/Value text clear of top/bottom pin name labels.
+_FONT5_TEXT_HEIGHT = 66.0
+
+_TOP_POWER_TOKENS = {
+    "VDD",
+    "VCC",
+    "VIN",
+    "VBUS",
+    "VBAT",
+    "VREG",
+    "VCAP",
+    "VOUT",
+    "VPWR",
+    "VDDIO",
+    "VDDH",
+    "VDDL",
+    "VDDA",
+    "AVDD",
+    "DVDD",
+    "VREF+",
+}
+_BOTTOM_POWER_TOKENS = {
+    "GND",
+    "VSS",
+    "VSSA",
+    "AVSS",
+    "DVSS",
+    "VSSIO",
+    "GNDA",
+    "GNDD",
+    "GNDP",
+    "VEE",
+    "VNEG",
+    "VREF-",
+    "AGND",
+    "PGND",
+}
 
 _POWER_PIN_TOKENS = {
     "VDD", "VSS", "VCC", "VEE", "GND", "AVDD", "AVSS", "DVDD", "DVSS",
@@ -152,40 +202,182 @@ def _esc_text(value) -> str:
     return escape(str(value))
 
 
-def _layout_pins(pin_rows) -> tuple[list[tuple[float, float, str]], float, int, float]:
-    """Compute pin coordinates for a two-sided box symbol.
+def _pin_token(pin_name: str) -> str:
+    """Return a coarse token used to classify power pins."""
+    token = re.split(r"[\s\-_/\\]+", str(pin_name).strip())[0].upper()
+    return re.sub(r"[^A-Z0-9+.-]", "", token)
 
-    Pins 1..ceil(N/2) run top-to-bottom on the left side; the remaining pins
-    run bottom-to-top on the right side (counter-clockwise numbering).
-    Returns ``(coords, symbol_height, pins_per_side, body_half_width)`` where
-    each coord is ``(x, y, orientation)`` in mil and the pin's free
-    (connection) end is at ``(x, y)``.
 
-    DipTrace draws the pin stub *in the direction of ``Orientation``* from
-    the pin point: a left pin must therefore point right (``"0"``) so its
-    stub reaches the body, and a right pin must point left (``"180"``).
+def _is_top_power_pin(pin_name: str) -> bool:
+    """Heuristic for supply pins that should sit above the body."""
+    token = _pin_token(pin_name)
+    return token in _TOP_POWER_TOKENS or any(
+        token.startswith(prefix) for prefix in ("VDD", "VCC", "VIN", "VBUS", "VBAT", "VREF+", "VDDA", "AVDD", "DVDD")
+    )
+
+
+def _is_bottom_power_pin(pin_name: str) -> bool:
+    """Heuristic for ground / negative supply pins that should sit below the body."""
+    token = _pin_token(pin_name)
+    return token in _BOTTOM_POWER_TOKENS or any(
+        token.startswith(prefix) for prefix in ("VSS", "GND", "AVSS", "DVSS", "GNDA", "GNDD", "GNDP")
+    )
+
+
+def _layout_pins(pin_rows) -> tuple[list[dict], float, float, float, float]:
+    """Compute pin coordinates and body metrics for a clean DipTrace symbol.
+
+    Every pin is classified first (top supply / bottom supply / side) and then
+    placed explicitly:
+
+    * Side pins run along the left and right edges of the body - left side
+      top-to-bottom, right side bottom-to-top so the numbering wraps around
+      like a real IC. Left pins point right (``"0"``) and right pins point
+      left (``"180"``) so the stub reaches the body, the layout captured in
+      ``docs/diptrace/captures/probe.elixml``.
+    * Small mixed-power symbols additionally get their supply pins centered on
+      the top edge (``"270"``, stub runs down into the body) and their ground
+      pins on the bottom edge (``"90"``, stub runs up).
+
+    Returns ``(coords, body_half_height, body_half_width, name_text_y,
+    value_text_y)`` where ``coords`` has one placement dict per input row in
+    the same order, the body metrics describe the rectangle *only* (the Part
+    ``Width``/``Height`` attributes and the rectangle shape must agree), and
+    the part ``Name``/``Value`` text offsets are pushed outside any top/bottom
+    pin labels so no text can overlap a pin.
     """
-    pin_count = len(pin_rows)
-    left_count = (pin_count + 1) // 2
-    right_count = pin_count - left_count
-    pins_per_side = max(left_count, right_count)
-    height = max(pins_per_side * PIN_PITCH, MIN_SYMBOL_HEIGHT)
+    rows = list(pin_rows)
+    top_rows = [row for row in rows if _is_top_power_pin(row["name"])]
+    bottom_rows = [row for row in rows if _is_bottom_power_pin(row["name"])]
+    power_count = len(top_rows) + len(bottom_rows)
+    use_vertical_power_pins = (
+        MIN_VERTICAL_POWER_SYMBOL_PINS <= len(rows) <= MAX_VERTICAL_POWER_SYMBOL_PINS
+        and 1 <= power_count <= MAX_VERTICAL_POWER_PINS
+    )
 
     body_half_width = float(MIN_BODY_HALF_WIDTH)
     # Keep symbol edges on DipTrace's common 50-mil drawing grid.
     body_half_width = float(int((body_half_width + 49.0) // 50.0) * 50)
-    tip_x = body_half_width + PIN_LENGTH
+    side_rows = rows
+    if use_vertical_power_pins:
+        side_rows = [
+            row
+            for row in rows
+            if row not in top_rows and row not in bottom_rows
+        ]
 
-    coords: list[tuple[float, float, str]] = []
-    for i in range(pin_count):
-        if i < left_count:
-            y = height / 2.0 - (i + 0.5) * PIN_PITCH
-            coords.append((-tip_x, y, "0"))
+    left_count = (len(side_rows) + 1) // 2
+    right_count = len(side_rows) - left_count
+    pins_per_side = max(left_count, right_count)
+    body_half_height = max(pins_per_side * PIN_PITCH, MIN_SYMBOL_HEIGHT) / 2.0
+
+    coords: list[dict] = []
+    # One X slot per top/bottom pin, centered on the edge; slots are assigned
+    # by position (never by dict equality) so duplicate power pins stay apart.
+    top_count = len(top_rows)
+    bottom_count = len(bottom_rows)
+    top_x_positions = [
+        -((top_count - 1) * PIN_PITCH) / 2.0 + i * PIN_PITCH
+        for i in range(top_count)
+    ]
+    bottom_x_positions = [
+        -((bottom_count - 1) * PIN_PITCH) / 2.0 + i * PIN_PITCH
+        for i in range(bottom_count)
+    ]
+
+    side_index = 0
+    top_slot = 0
+    bottom_slot = 0
+    for row in rows:
+        if use_vertical_power_pins and _is_top_power_pin(row["name"]):
+            coords.append(
+                {
+                    "x": top_x_positions[top_slot],
+                    "y": body_half_height + PIN_LENGTH,
+                    "orientation": "270",
+                    "num_x_shift": "0",
+                    "num_y_shift": str(-int(_TOP_BOTTOM_NUM_OUTSET)),
+                    "name_x_shift": "0",
+                    "name_y_shift": str(int(_TOP_BOTTOM_NAME_OUTSET)),
+                    "num_orientation": "0",
+                    "name_orientation": "0",
+                }
+            )
+            top_slot += 1
+            continue
+        if use_vertical_power_pins and _is_bottom_power_pin(row["name"]):
+            coords.append(
+                {
+                    "x": bottom_x_positions[bottom_slot],
+                    "y": -(body_half_height + PIN_LENGTH),
+                    "orientation": "90",
+                    "num_x_shift": "0",
+                    "num_y_shift": str(int(_TOP_BOTTOM_NUM_OUTSET)),
+                    "name_x_shift": "0",
+                    "name_y_shift": str(-int(_TOP_BOTTOM_NAME_OUTSET)),
+                    "num_orientation": "0",
+                    "name_orientation": "0",
+                }
+            )
+            bottom_slot += 1
+            continue
+
+        if side_index < left_count:
+            y = body_half_height - (side_index + 0.5) * PIN_PITCH
+            coords.append(
+                {
+                    "x": -(body_half_width + PIN_LENGTH),
+                    "y": y,
+                    "orientation": "0",
+                    "num_x_shift": str(int(_NUM_OUTSET)),
+                    "num_y_shift": "-20",
+                    "name_x_shift": str(-int(_NAME_OUTSET)),
+                    "name_y_shift": "20",
+                    "num_orientation": "0",
+                    "name_orientation": "0",
+                }
+            )
         else:
-            j = i - left_count
-            y = -height / 2.0 + (j + 0.5) * PIN_PITCH
-            coords.append((tip_x, y, "180"))
-    return coords, height, pins_per_side, body_half_width
+            j = side_index - left_count
+            y = -body_half_height + (j + 0.5) * PIN_PITCH
+            coords.append(
+                {
+                    "x": body_half_width + PIN_LENGTH,
+                    "y": y,
+                    "orientation": "180",
+                    "num_x_shift": str(-int(_NUM_OUTSET)),
+                    "num_y_shift": "-20",
+                    "name_x_shift": str(int(_NAME_OUTSET)),
+                    "name_y_shift": "20",
+                    "num_orientation": "0",
+                    "name_orientation": "0",
+                }
+            )
+        side_index += 1
+
+    # Part Name/Value text must clear the pin stubs and any top/bottom pin
+    # name labels (a label sits NAME_OUTSET beyond the tip and is about half a
+    # font-5 glyph tall). Without vertical power pins this is the body edge
+    # plus the text gap, matching probe.elixml.
+    name_text_y = body_half_height + NAME_TEXT_GAP
+    if use_vertical_power_pins and top_count:
+        name_text_y = (
+            body_half_height
+            + PIN_LENGTH
+            + _TOP_BOTTOM_NAME_OUTSET
+            + _FONT5_TEXT_HEIGHT / 2.0
+            + NAME_TEXT_GAP
+        )
+    value_text_y = -(body_half_height + VALUE_TEXT_GAP)
+    if use_vertical_power_pins and bottom_count:
+        value_text_y = -(
+            body_half_height
+            + PIN_LENGTH
+            + _TOP_BOTTOM_NAME_OUTSET
+            + _FONT5_TEXT_HEIGHT / 2.0
+            + VALUE_TEXT_GAP
+        )
+    return coords, body_half_height, body_half_width, name_text_y, value_text_y
 
 
 def _normalize_rows(pin_rows) -> list[dict]:
@@ -309,9 +501,11 @@ def build_component_library(
         library_name = f"{component_name} {package}".strip()
     hint = str(hint or "").strip() or library_name
 
-    coords, height, _pins_per_side, body_half_width = _layout_pins(rows)
+    coords, body_half_height, body_half_width, name_text_y, value_text_y = _layout_pins(
+        rows
+    )
     width = 2.0 * body_half_width
-    top = height / 2.0
+    height = 2.0 * body_half_height
     uid = _make_uid(library_name)
 
     lines: list[str] = []
@@ -337,19 +531,19 @@ def build_component_library(
         lines.append(f"        <Manufacturer>{_esc_text(manufacturer)}</Manufacturer>")
 
     lines.append("        <Pins>")
-    for index, ((x, y, orientation), row) in enumerate(zip(coords, rows)):
+    for index, (placement, row) in enumerate(zip(coords, rows)):
+        x = placement["x"]
+        y = placement["y"]
+        orientation = placement["orientation"]
         electric = pin_electric_type(row["name"])
-        if orientation == "0":
-            num_shift, name_shift = _NUM_OUTSET, -_NAME_OUTSET
-        else:
-            num_shift, name_shift = -_NUM_OUTSET, _NAME_OUTSET
         lines.append(
             f'          <Pin Id="{index}" X="{_fmt(x)}" Y="{_fmt(y)}" Locked="N" '
             f'Type="Default" ElectricType="{electric}" Orientation="{orientation}" '
             f'PadId="{index}" Length="{_fmt(PIN_LENGTH)}" ShowName="Y" '
-            f'NumXShift="{_fmt(num_shift)}" NumYShift="-20" '
-            f'NameXShift="{_fmt(name_shift)}" NameYShift="20" SignalDelay="0" '
-            f'NumOrientation="0" NameOrientation="0" Group="-1">'
+            f'NumXShift="{placement["num_x_shift"]}" NumYShift="{placement["num_y_shift"]}" '
+            f'NameXShift="{placement["name_x_shift"]}" NameYShift="{placement["name_y_shift"]}" '
+            f'SignalDelay="0" NumOrientation="{placement["num_orientation"]}" '
+            f'NameOrientation="{placement["name_orientation"]}" Group="-1">'
         )
         lines.append(f"            <Name>{_esc_text(short_pin_name(row['name']))}</Name>")
         lines.append(f"            <PadNumber>{_esc_text(row['pin'])}</PadNumber>")
@@ -366,14 +560,18 @@ def build_component_library(
         '          <Shape Id="0" Type="Rectangle" LineWidth="10" Locked="N" Group="-1">'
     )
     lines.append("            <Points>")
-    lines.append(f'              <Point X="{_fmt(-body_half_width)}" Y="{_fmt(top)}"/>')
-    lines.append(f'              <Point X="{_fmt(body_half_width)}" Y="{_fmt(-top)}"/>')
+    lines.append(
+        f'              <Point X="{_fmt(-body_half_width)}" Y="{_fmt(body_half_height)}"/>'
+    )
+    lines.append(
+        f'              <Point X="{_fmt(body_half_width)}" Y="{_fmt(-body_half_height)}"/>'
+    )
     lines.append("            </Points>")
     lines.append("          </Shape>")
 
     for shape_id, text_show, text_y in (
-        (1, "Name", top + NAME_TEXT_GAP),
-        (2, "Value", -top - VALUE_TEXT_GAP),
+        (1, "Name", name_text_y),
+        (2, "Value", value_text_y),
     ):
         lines.append(
             f'          <Shape Id="{shape_id}" Type="Text" Locked="N" '
