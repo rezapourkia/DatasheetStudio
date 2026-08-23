@@ -36,7 +36,7 @@ The following rules apply to every module:
 | 4 | Bookmark Navigation | Working (partial) | Bookmark tree + right-click to send a section's pages to selection |
 | 5 | Selected Pages | Working | Add, remove, clear, and range-transfer pages |
 | 6 | Notes and Annotations | Working (partial) | Page-level and datasheet-level notes |
-| 7 | Local Datasheet Library | Planned | Local datasheet bank, categories, search, and download folder |
+| 7 | Local Datasheet Library | In progress | Local datasheet bank, categories by manufacturer, search, summaries, and download folder |
 | 8 | AI Assistant | In progress | Provider config, secure key storage, chat/summary/report with RAG |
 | 9 | Online Component Search | Planned | Official-API adapters for SnapEDA, Mouser, DigiKey, etc. |
 | 10 | Tools Framework + Export | Future | Plugin registry, symbol/package extraction, DipTrace export |

@@ -53,6 +53,9 @@ from datasheet_studio.ui.widgets.note_overlay import NoteOverlayWidget
 from datasheet_studio.ui.widgets.note_editor import NoteEditorDialog
 from datasheet_studio.models.pdf_document import PdfNote
 from datasheet_studio.services.ai_service import AIService
+from datasheet_studio.services.library_service import LibraryService
+from datasheet_studio.ui.library_panel import LibraryPanel
+from datasheet_studio.ui.dialogs.add_to_library_dialog import AddToLibraryDialog
 from datasheet_studio.core.logging import get_log_text
 
 
@@ -209,6 +212,9 @@ class MainWindow(QMainWindow):
         self._ai_service = AIService()
         self._log = logging.getLogger("datasheet_studio.ui")
 
+        # Local datasheet library
+        self._library_service = LibraryService()
+
         self.setWindowTitle(APP_NAME)
         self.resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         self._log.info("MainWindow created (version %s)", APP_VERSION)
@@ -216,6 +222,28 @@ class MainWindow(QMainWindow):
         self._create_central_area()
         self._create_menu_bar()
         self._create_status_bar()
+
+        self._restore_library_on_startup()
+
+    def _restore_library_on_startup(self) -> None:
+        """Reopen the last used library folder if it still exists."""
+        folder = self._settings.value("libraryPath", "")
+        if not folder:
+            return
+        from pathlib import Path as FsPath
+
+        if not FsPath(folder).is_dir():
+            self.statusBar().showMessage(
+                "The last library folder is no longer available.", 5000
+            )
+            return
+        try:
+            self._library_service.open_library(folder)
+        except Exception as exc:  # noqa: BLE001 - never block startup
+            self._log.warning("Could not restore library %s: %s", folder, exc)
+            return
+        self._library_panel.refresh()
+        self._log.info("Restored library on startup: %s", folder)
 
     # ------------------------------------------------------------------
     # Central layout
@@ -246,29 +274,23 @@ class MainWindow(QMainWindow):
 
         tabs = QTabWidget()
         tabs.addTab(self._create_bookmarks_view(), "Bookmarks")
-        tabs.addTab(self._create_library_placeholder(), "Library")
+        tabs.addTab(self._create_library_panel(), "Library")
 
         panel.layout().addWidget(tabs, 1)
         return panel
 
-    def _create_library_placeholder(self) -> QWidget:
-        """Create the local datasheet library placeholder."""
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
-
-        hint = QLabel(
-            "Search and manage your local datasheet library here.\n\n"
-            "Future: categories by type and manufacturer, search,\n"
-            "and a local datasheet download folder."
+    def _create_library_panel(self) -> QWidget:
+        """Create the real local datasheet library panel."""
+        self._library_panel = LibraryPanel(self._library_service, self)
+        self._library_panel.open_pdf_requested.connect(self._open_library_item)
+        self._library_panel.open_summary_requested.connect(self._open_summary_file)
+        self._library_panel.add_current_pdf_requested.connect(
+            self._add_current_pdf_to_library
         )
-        hint.setWordWrap(True)
-        hint.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(hint)
-
-        layout.addStretch()
-        return page
+        self._library_panel.status_message.connect(
+            lambda msg: self.statusBar().showMessage(msg, 3000)
+        )
+        return self._library_panel
 
     def _create_bookmarks_view(self) -> QWidget:
         """Create the PDF bookmarks tree view with context menu support."""
@@ -1286,6 +1308,14 @@ class MainWindow(QMainWindow):
         self._ai_summary_button.clicked.connect(self._generate_ai_summary)
         layout.addWidget(self._ai_summary_button)
 
+        self._save_summary_button = QPushButton("💾 Save Summary to Library…")
+        self._save_summary_button.setEnabled(False)
+        self._save_summary_button.setToolTip(
+            "Write the generated summary into the library's summaries folder"
+        )
+        self._save_summary_button.clicked.connect(self._save_summary_to_library)
+        layout.addWidget(self._save_summary_button)
+
         return page
 
     def _create_ai_report_placeholder(self) -> QWidget:
@@ -1467,6 +1497,33 @@ class MainWindow(QMainWindow):
         )
         symbol_action.triggered.connect(self._open_symbol_creator)
 
+        # Library menu
+        library_menu = menu_bar.addMenu("&Library")
+        open_library_action = library_menu.addAction("&Open Library Folder...")
+        open_library_action.setStatusTip("Open an existing datasheet library folder")
+        open_library_action.triggered.connect(self._open_library_folder_dialog)
+
+        create_library_action = library_menu.addAction("Create &New Library...")
+        create_library_action.setStatusTip("Create a new empty library folder")
+        create_library_action.triggered.connect(self._create_library_dialog)
+
+        library_menu.addSeparator()
+        self._add_to_library_action = library_menu.addAction(
+            "Add Current PDF to &Library..."
+        )
+        self._add_to_library_action.setShortcut("Ctrl+D")
+        self._add_to_library_action.setStatusTip(
+            "Copy the currently open datasheet into the library"
+        )
+        self._add_to_library_action.setEnabled(False)
+        self._add_to_library_action.triggered.connect(self._add_current_pdf_to_library)
+
+        search_online_action = library_menu.addAction("Search Datasheets &Online...")
+        search_online_action.setStatusTip(
+            "Open a small web browser to find and temporarily download datasheets"
+        )
+        search_online_action.triggered.connect(self._open_datasheet_browser)
+
         # Help menu
         help_menu = menu_bar.addMenu("&Help")
         about_action = help_menu.addAction("&About Datasheet Studio")
@@ -1488,6 +1545,124 @@ class MainWindow(QMainWindow):
             "annotating, and analyzing electronic-component datasheets.<br><br>"
             "<i>Current stage: Foundation + Application Shell + PDF Viewer.</i>",
         )
+
+    # ------------------------------------------------------------------
+    # Library actions
+    # ------------------------------------------------------------------
+
+    def _open_library_folder_dialog(self) -> None:
+        """Ask for a folder and open it as a library if it is one."""
+        from PySide6.QtWidgets import QFileDialog
+
+        start = "~"
+        if self._library_service.store is not None:
+            start = str(self._library_service.store.root)
+        folder = QFileDialog.getExistingDirectory(self, "Open Library Folder", start)
+        if not folder:
+            return
+        self._open_library_path(folder)
+
+    def _open_library_path(self, folder: str) -> bool:
+        """Open ``folder`` as a library; returns success."""
+        from datasheet_studio.infrastructure.storage.library_store import (
+            InvalidLibraryError,
+            LibraryError,
+        )
+
+        try:
+            self._library_service.open_library(folder)
+        except (InvalidLibraryError, LibraryError) as exc:
+            QMessageBox.warning(
+                self,
+                "Not a Library",
+                f"{folder}\n\nis not a valid Datasheet Studio library.\n\n({exc})",
+            )
+            return False
+        self._settings.setValue("libraryPath", folder)
+        self._library_panel.refresh()
+        self.statusBar().showMessage(f"Library opened: {folder}", 4000)
+        self._log.info("Opened library: %s", folder)
+        return True
+
+    def _create_library_dialog(self) -> None:
+        """Ask for a new empty folder and create a library in it."""
+        from PySide6.QtWidgets import QFileDialog
+
+        start = "~"
+        if self._library_service.store is not None:
+            start = str(self._library_service.store.root)
+        folder = QFileDialog.getExistingDirectory(
+            self, "Create Library (choose an empty folder)", start
+        )
+        if not folder:
+            return
+        from datasheet_studio.infrastructure.storage.library_store import LibraryError
+
+        try:
+            self._library_service.create_library(folder)
+        except LibraryError as exc:
+            QMessageBox.warning(self, "Create Library Failed", str(exc))
+            return
+        self._settings.setValue("libraryPath", folder)
+        self._library_panel.refresh()
+
+    def _add_current_pdf_to_library(self) -> None:
+        """Copy the currently open PDF into the library (with a folder picker)."""
+        if self._pdf_info is None:
+            QMessageBox.information(self, "Add to Library", "Open a datasheet first.")
+            return
+
+        # Make sure a library exists.
+        if self._library_service.store is None:
+            answer = QMessageBox.question(
+                self,
+                "No Library",
+                "No library is open yet.\n\nCreate a new library folder now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            self._create_library_dialog()
+            if self._library_service.store is None:
+                return
+
+        meta = self._library_service.detect_metadata(self._pdf_info.path)
+        from datasheet_studio.models.library_item import LibraryItemKind
+
+        existing = self._library_service.store.manufacturer_folders(
+            LibraryItemKind.DATASHEET
+        )
+        dialog = AddToLibraryDialog(
+            self,
+            source_name=self._pdf_info.path,
+            detected_manufacturer=str(meta.get("manufacturer") or ""),
+            existing_folders=existing,
+        )
+        if dialog.exec() != AddToLibraryDialog.DialogCode.Accepted:
+            return
+
+        try:
+            item = self._library_service.add_pdf(
+                self._pdf_info.path,
+                manufacturer_folder=dialog.selected_folder(),
+                kind=dialog.selected_kind(),
+                tags=dialog.selected_tags(),
+            )
+        except Exception as exc:  # noqa: BLE001 - surface to the user
+            QMessageBox.warning(self, "Add to Library Failed", str(exc))
+            self._log.warning("Add to library failed: %s", exc)
+            return
+
+        self._library_panel.refresh()
+        self.statusBar().showMessage(
+            f"Added to library → {item.manufacturer_folder}/{item.title}", 4000
+        )
+        self._log.info("Added to library: %s", item.relative_path)
+
+        self.statusBar().showMessage(f"Library created: {folder}", 4000)
+        self._log.info("Created library: %s", folder)
+
 
     # ------------------------------------------------------------------
     # PDF open / navigation / rendering
@@ -1536,6 +1711,8 @@ class MainWindow(QMainWindow):
         self._manage_notes_button.setEnabled(True)
         self._page_range_input.setEnabled(True)
         self._add_range_button.setEnabled(True)
+        self._add_to_library_action.setEnabled(True)
+        self._library_panel.set_add_enabled(True)
         self._update_navigation_buttons()
 
     def _populate_bookmarks(self, info: PdfDocumentInfo) -> None:
@@ -1991,6 +2168,7 @@ class MainWindow(QMainWindow):
 
         def on_result(result):
             self._ai_summary_display.setPlainText(result)
+            self._save_summary_button.setEnabled(True)
             self.statusBar().showMessage("Summary generated", 2000)
             self._log.info("AI summary response received (%d chars)", len(result))
 
@@ -2461,6 +2639,187 @@ class MainWindow(QMainWindow):
         self._settings.setValue("recentFiles", [])
         self._update_recent_files_menu()
         self.statusBar().showMessage("Recent files cleared", 2000)
+
+    def _open_library_item(self, path: str) -> None:
+        """Open a PDF stored in the library (same flow as opening a file)."""
+        from pathlib import Path as FsPath
+
+        if not FsPath(path).is_file():
+            QMessageBox.warning(
+                self, "File Not Found", f"The library file is not available:\n{path}"
+            )
+            return
+        try:
+            info = self._reader.open(path)
+        except PdfOpenError as exc:
+            QMessageBox.critical(self, "Open Error", str(exc))
+            return
+
+        self._pdf_info = info
+        self._current_page = 1
+        self._zoom = 1.0
+        self._notes_by_page.clear()
+        self._clear_selected_pages()
+        self._populate_bookmarks(info)
+        self._activate_document_ui()
+        self._add_to_recent_files(info.path)
+        self._update_recent_files_menu()
+        self.statusBar().showMessage(f"Opened from library: {info.path}")
+        self._log.info("Opened library document: %s", info.path)
+        self._render_page(self._current_page)
+
+    def _open_summary_file(self, path: str) -> None:
+        """Show a stored Markdown summary in a dialog."""
+        from pathlib import Path as FsPath
+
+        if not FsPath(path).is_file():
+            QMessageBox.warning(self, "Summary Missing", f"No summary file:\n{path}")
+            return
+        try:
+            text = FsPath(path).read_text(encoding="utf-8")
+        except OSError as exc:
+            QMessageBox.warning(self, "Summary Error", str(exc))
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Summary — {FsPath(path).name}")
+        dialog.resize(640, 500)
+        layout = QVBoxLayout(dialog)
+        browser = _AutoHeightTextBrowser()
+        browser.setHtml(markdown_to_html(text))
+        layout.addWidget(browser)
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignRight)
+        dialog.exec()
+
+    def _open_datasheet_browser(self) -> None:
+        """Open the small embedded web browser for searching/downloading."""
+        from datasheet_studio.ui.dialogs.datasheet_browser import (
+            DatasheetBrowserDialog,
+        )
+
+        download_dir = None
+        store = self._library_service.store
+        if store is not None:
+            download_dir = store.root / "_downloads"
+
+        dialog = DatasheetBrowserDialog(self, download_dir=download_dir)
+        dialog.add_download_to_library.connect(self._add_download_to_library)
+        dialog.exec()
+
+    def _add_download_to_library(self, path: str) -> None:
+        """Add a temporarily downloaded PDF to the library."""
+        if self._library_service.store is None:
+            answer = QMessageBox.question(
+                self,
+                "No Library",
+                "No library is open. Create one before adding this file?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            self._create_library_dialog()
+            if self._library_service.store is None:
+                return
+
+        meta = self._library_service.detect_metadata(path)
+        from datasheet_studio.models.library_item import LibraryItemKind
+
+        existing = self._library_service.store.manufacturer_folders(
+            LibraryItemKind.DATASHEET
+        )
+        dialog = AddToLibraryDialog(
+            self,
+            source_name=path,
+            detected_manufacturer=str(meta.get("manufacturer") or ""),
+            existing_folders=existing,
+        )
+        if dialog.exec() != AddToLibraryDialog.DialogCode.Accepted:
+            return
+        try:
+            item = self._library_service.add_pdf(
+                path,
+                manufacturer_folder=dialog.selected_folder(),
+                kind=dialog.selected_kind(),
+                tags=dialog.selected_tags(),
+            )
+        except Exception as exc:  # noqa: BLE001 - surface to the user
+            QMessageBox.warning(self, "Add to Library Failed", str(exc))
+            return
+        self._library_panel.refresh()
+        self.statusBar().showMessage(
+            f"Added to library → {item.manufacturer_folder}/{item.title}", 4000
+        )
+    def _save_summary_to_library(self) -> None:
+        """Write the current AI summary into the library summaries folder."""
+        text = self._ai_summary_display.toPlainText().strip()
+        if not text:
+            QMessageBox.information(
+                self, "Save Summary", "Generate a summary first."
+            )
+            return
+        if self._pdf_info is None:
+            QMessageBox.information(self, "Save Summary", "Open a datasheet first.")
+            return
+
+        if self._library_service.store is None:
+            answer = QMessageBox.question(
+                self,
+                "No Library",
+                "No library is open. Create one to save summaries?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            self._create_library_dialog()
+            if self._library_service.store is None:
+                return
+
+        store = self._library_service.store
+        from pathlib import Path as FsPath
+
+        current_path = FsPath(self._pdf_info.path).resolve()
+        item = None
+        for candidate in store.items:
+            if FsPath(store.item_path(candidate)).resolve() == current_path:
+                item = candidate
+                break
+
+        if item is None:
+            answer = QMessageBox.question(
+                self,
+                "Not in Library",
+                "The currently open PDF is not in the library.\n\n"
+                "Add it to the library first so the summary can be linked?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            self._add_current_pdf_to_library()
+            if self._library_service.store is None:
+                return
+            store = self._library_service.store
+            for candidate in store.items:
+                if FsPath(store.item_path(candidate)).resolve() == current_path:
+                    item = candidate
+                    break
+            if item is None:
+                return
+
+        try:
+            summary_path = self._library_service.save_summary(item.item_id, text)
+        except Exception as exc:  # noqa: BLE001 - surface to the user
+            QMessageBox.warning(self, "Save Summary Failed", str(exc))
+            return
+        self._library_panel.refresh()
+        self.statusBar().showMessage(f"Summary saved → {summary_path}", 4000)
+        self._log.info("Summary saved to library: %s", summary_path)
+
+
 
     def _go_to_previous_page(self) -> None:
         """Navigate to the previous page."""

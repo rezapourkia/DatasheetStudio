@@ -21,6 +21,12 @@ temp/
 build/
 dist/
 
+# Local datasheet library (user data — never commit)
+library.json
+Library/
+DatasheetStudioLibrary/
+*_downloads/
+
 # Packaging artifacts
 *.egg-info/
 

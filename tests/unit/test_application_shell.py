@@ -52,7 +52,7 @@ def test_central_area_has_four_panels(qapp_instance):
 def test_menu_bar_has_expected_menus(qapp_instance):
     window = MainWindow()
     menu_titles = [action.text() for action in window.menuBar().actions()]
-    assert menu_titles == ["&File", "&View", "&Tools", "&Help"]
+    assert menu_titles == ["&File", "&View", "&Tools", "&Library", "&Help"]
     window.close()
 
 
