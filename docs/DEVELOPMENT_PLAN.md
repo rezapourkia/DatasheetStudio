@@ -135,8 +135,8 @@ only location of a requirement, decision, test result, or unfinished action.
 | 6 | Online source adapter framework | `ACCEPTED` | Provider-independent search, normalized results, safe download, first official adapter |
 | 7 | Complete document text/OCR coverage | `ACCEPTED` | Page coverage ledger and pluggable OCR boundary |
 | 8 | Controller profile and evidence schema | `ACCEPTED` | Strict reusable IC profile with field-level citations and review states |
-| 9 | AI extraction artifacts and review UI | `REVIEW` | Versioned MD prompt, validated response, diff/review/accept flow |
-| 10 | Current-datasheet handoff to Flyback | `PLANNED` | Open PDF/profile becomes explicit Flyback project context |
+| 9 | AI extraction artifacts and review UI | `ACCEPTED` | Versioned MD prompt, validated response, diff/review/accept flow |
+| 10 | Current-datasheet handoff to Flyback | `REVIEW` | Open PDF/profile becomes explicit Flyback project context |
 | 11 | Flyback domain v2 outputs and scenarios | `PLANNED` | Unbounded domain outputs, isolation groups, load/tolerance scenario matrix |
 | 12 | Real magnetics catalogue foundation | `PLANNED` | Exact core/material/bobbin records, source packs, cache/update UI |
 | 13 | Transformer feasibility and alternatives | `PLANNED` | Physical constraints and deterministic nearby-core ranking |
@@ -590,13 +590,12 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 8 was accepted by the owner (2026-09-15). Phase 9 (AI extraction
-artifacts and review UI) is implemented, tested, and pushed per
-`docs/modules/AI_EXTRACTION_ARTIFACTS.md`; it is awaiting the owner review
-gate: one end-to-end real controller extraction via **Tools → Knowledge
-Base → استخراج پروفایل با AI…** with a configured AI provider. Recorded
-verification: full regression **304 passed in 68.22 s** (11 new tests:
-invalid JSON/truncation/missing-unit/bad-citation/unknown-field handling,
-pre-send cancellation, provider-failure wrapping, acceptance gating with
-the extracted-only cap, vault storage + offline reload, run archiving).
-Do not begin Phase 10 until the owner accepts the Phase 9 review.
+Phase 9 was accepted by the owner (2026-09-15). Phase 10 (current-datasheet
+handoff to Flyback) is implemented, tested, and pushed per
+`docs/modules/FLYBACK_HANDOFF.md`; it is awaiting the owner review gate:
+open a controller datasheet with a saved profile, then Tools → Power Design
+→ طراح فلای‌بک… and check the identity banner and prefilled values.
+Recorded verification: full regression with the Phase-10 suite (8 new
+tests: hash/profile handoff, prefill + banner, unreviewed flagging with
+unknowns, manual no-PDF open, saved-design isolation). Do not begin Phase
+11 until the owner accepts the Phase 10 review.

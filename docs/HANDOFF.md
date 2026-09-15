@@ -6,7 +6,7 @@
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 9 — `REVIEW`
+**Active phase:** Phase 10 — `REVIEW`
 
 ## Completed Result
 
@@ -63,7 +63,7 @@ Markdown contract. Do not start Phase 9 before that.
 3b. `docs/modules/TEXT_EXTRACTION_COVERAGE.md` (Phase 7 contract)
 4. `docs/modules/KNOWLEDGE_BASE_SCHEMA.md`, `KNOWLEDGE_INDEX.md`,
    `LIBRARY_UPGRADE.md`, `ONLINE_ADAPTER_FRAMEWORK.md`
-5. `docs/CURRENT_STATUS.md` (section 22 is the newest record) and
+5. `docs/CURRENT_STATUS.md` (section 24 is the newest record) and
    `docs/WORK_LOG.md`
 6. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (incl. ADR-021)
 

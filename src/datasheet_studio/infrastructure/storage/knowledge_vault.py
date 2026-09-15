@@ -242,6 +242,27 @@ class KnowledgeVault:
                 knowledge_index.close()
         return target
 
+    def controller_profiles_for(self, source_hash: str) -> list:
+        """Newest-first controller profiles in this vault bound to a source."""
+
+        from datasheet_studio.models.controller_profile import (
+            ControllerProfile,
+            load_controller_profile,
+        )
+
+        profiles: list[ControllerProfile] = []
+        for candidate in (self._root / "records" / "components").rglob("profile.json"):
+            try:
+                profile = load_controller_profile(
+                    candidate.read_text(encoding="utf-8")
+                )
+            except Exception:  # noqa: BLE001 - skip unreadable records
+                continue
+            if profile.source_object_sha256 == source_hash:
+                profiles.append(profile)
+        profiles.sort(key=lambda item: item.profile_version, reverse=True)
+        return profiles
+
     # -- migration artifacts -------------------------------------------------------
 
     def backup_manifest(self, manifest_path: str | Path) -> Path:

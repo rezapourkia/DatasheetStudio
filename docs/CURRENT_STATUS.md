@@ -1147,3 +1147,20 @@ reuse of saved profiles through the Phase 8 form/index.
 Verification: full regression **304 passed in 68.22 s** (11 new tests).
 Not verified: a real provider run (needs configured AI + owner consent —
 review gate).
+
+---
+
+## 24. Phase 10 — Current-Datasheet Handoff to Flyback — 2026-09-15
+
+Implemented per `docs/modules/FLYBACK_HANDOFF.md`: `ToolContext` now carries
+`source_hash` (SHA-256 of the open PDF) and `controller_profile` (newest
+vault profile for that hash via `KnowledgeVault.controller_profiles_for`).
+The Flyback tool prefills a **new** dialog from the profile (frequency,
+current limit, switch voltage limit, duty max, OVP, switch type, `ic_id`)
+and shows a controller-identity banner with profile version and review
+status; unreviewed profiles are explicitly flagged and missing required
+fields listed. Without an open PDF the designer still opens with manual
+defaults. Saved `.flyback.json` designs are never rewritten by a handoff
+(byte-identical, tested).
+
+Verification: full regression **312 passed in 66.85 s** (8 new tests).

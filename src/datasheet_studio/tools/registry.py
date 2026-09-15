@@ -15,6 +15,8 @@ class ToolContext:
     pdf_info: Any = None
     selected_pages: tuple[int, ...] = ()
     ai_service: Any = None
+    source_hash: str = ""
+    controller_profile: Any = None
 
 
 @runtime_checkable

@@ -1583,12 +1583,35 @@ class MainWindow(QMainWindow):
 
     def _tool_context(self) -> ToolContext:
         """Create a current state snapshot for a registered engineering tool."""
+        source_hash = ""
+        if self._pdf_info is not None:
+            try:
+                from datasheet_studio.services.knowledge_hash import sha256_file
+
+                source_hash = sha256_file(self._pdf_info.path)
+            except OSError:
+                source_hash = ""
+        controller_profile = None
+        if source_hash:
+            vault_path = str(self._settings.value("knowledgeBasePath", "") or "")
+            if vault_path:
+                try:
+                    from datasheet_studio.infrastructure.storage.knowledge_vault import (
+                        KnowledgeVault,
+                    )
+
+                    matches = KnowledgeVault(vault_path).controller_profiles_for(source_hash)
+                    controller_profile = matches[0] if matches else None
+                except Exception:
+                    controller_profile = None
         return ToolContext(
             parent=self,
             pdf_reader=self._reader,
             pdf_info=self._pdf_info,
             selected_pages=tuple(sorted(self._selected_pages)),
             ai_service=self._ai_service,
+            source_hash=source_hash,
+            controller_profile=controller_profile,
         )
 
     def _run_registered_tool(self, tool_id: str) -> None:

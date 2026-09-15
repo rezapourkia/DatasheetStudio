@@ -374,3 +374,22 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: owner runs one end-to-end real extraction at the Phase 9 gate;
   Phase 10 (current-datasheet handoff to Flyback) starts after acceptance.
+
+## 2026-09-15 — Phase 10 — Current-datasheet handoff to Flyback implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه" — Phase 9 acceptance)
+- Scope: Phase 10 only per `docs/DEVELOPMENT_PLAN.md`.
+- Changed: `docs/modules/FLYBACK_HANDOFF.md` (contract first),
+  `ToolContext` (+source_hash, +controller_profile),
+  `KnowledgeVault.controller_profiles_for`, `MainWindow._tool_context`,
+  Flyback dialog ctor (prefill + controller banner), Flyback tool prefill
+  logic, `tests/unit/test_flyback_handoff.py`.
+- Verification: 8 new tests; full regression **312 passed in 66.85 s**;
+  compile passed. Fix during pass: tests patch the dialog module (the tool
+  imports it lazily inside run()).
+- Not verified: owner's visual check of the banner/prefill (review gate).
+- Commit: this commit
+- Handoff: owner verifies PDF → Tools → Flyback flow at the Phase 10 gate;
+  Phase 11 (Flyback domain v2 outputs/scenarios) starts after acceptance.

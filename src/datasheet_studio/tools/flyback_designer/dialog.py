@@ -47,7 +47,10 @@ LOG = logging.getLogger("datasheet_studio.tools.flyback")
 class FlybackDesignerDialog(QDialog):
     """Editable native DCM pre-design workspace."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, *, prefill: dict | None = None,
+                 controller_meta: dict | None = None) -> None:
+        self._prefill = dict(prefill or {})
+        self._controller_meta = dict(controller_meta or {})
         super().__init__(parent)
         self.setWindowTitle("طراح فلای‌بک — Datasheet Studio")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -79,8 +82,39 @@ class FlybackDesignerDialog(QDialog):
         root.addWidget(splitter, 1)
         root.addLayout(self._build_actions())
 
-        self._apply_project(default_project(), default_core())
+        project = default_project()
+        for key, value in self._prefill.items():
+            if hasattr(project, key):
+                setattr(project, key, value)
+        self._apply_project(project, default_core())
         self.recalculate()
+        self._show_controller_banner()
+
+    def _show_controller_banner(self) -> None:
+        meta = self._controller_meta
+        if not meta:
+            return
+        status = meta.get("status", "")
+        unknowns = meta.get("unknowns", "")
+        text = (
+            "کنترلرِ سند باز: {maker} {part} — نسخهٔ پروفایل {version} — وضعیت: {status}"
+        ).format(
+            maker=meta.get("manufacturer", ""),
+            part=meta.get("part_number", ""),
+            version=meta.get("profile_version", "؟"),
+            status=status,
+        )
+        if unknowns:
+            text += " — مقادیر مجهول: " + unknowns
+        notice = QLabel(text)
+        notice.setWordWrap(True)
+        notice.setStyleSheet(
+            "QLabel { background: #eef4ff; color: #1c3d6e;"
+            " border: 1px solid #b8cdf0; border-radius: 6px; padding: 6px; }"
+        )
+        row = QHBoxLayout()
+        row.addWidget(notice)
+        self.layout().insertLayout(1, row)
 
     def _build_header(self) -> QWidget:
         box = QWidget()
