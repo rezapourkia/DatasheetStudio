@@ -110,6 +110,7 @@ class LibraryUpgradeDialog(QDialog):
         self._report: MigrationReport | None = None
         self._worker: _MigrationWorker | None = None
         self._cancel_event = threading.Event()
+        self._pending_close = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 14, 14, 14)
@@ -251,6 +252,25 @@ class LibraryUpgradeDialog(QDialog):
         self._progress.setValue(done)
         self._summary_label.setText(f"[{done}/{total}] {label}")
 
+    def reject(self) -> None:
+        """Refuse close while migration runs; cancel-and-close afterwards."""
+
+        if self._worker is not None and self._worker.isRunning():
+            self._pending_close = True
+            self._cancel_event.set()
+            self._summary_label.setText(
+                "در حال لغو برای بستن… (پس از فایل جاری پنجره بسته می‌شود)"
+            )
+            return
+        super().reject()
+
+    def _maybe_finish_pending_close(self) -> None:
+        if self._pending_close and (
+            self._worker is None or not self._worker.isRunning()
+        ):
+            self._pending_close = False
+            super().reject()
+
     def _on_migration_failed(self, message: str) -> None:
         self._progress.setRange(0, 1)
         self._progress.setValue(0)
@@ -258,6 +278,7 @@ class LibraryUpgradeDialog(QDialog):
         self._start_button.setEnabled(True)
         self._summary_label.setText(message)
         QMessageBox.warning(self, "ارتقا", message)
+        self._maybe_finish_pending_close()
 
     def _on_migration_finished(self, report: MigrationReport) -> None:
         self._report = report
@@ -267,6 +288,7 @@ class LibraryUpgradeDialog(QDialog):
         self._start_button.setEnabled(False)
         self._accept_button.setEnabled(True)
         self._rollback_button.setEnabled(True)
+        self._maybe_finish_pending_close()
         summary = " — ".join(
             f"{_ENTRY_LABELS[kind]}: {report.count(kind)}"
             for kind in ("imported", "duplicate", "ambiguous", "skipped", "failed")
@@ -307,18 +329,20 @@ class LibraryUpgradeDialog(QDialog):
             return
         from PySide6.QtCore import QSettings
 
-        settings = QSettings(APP_ORGANIZATION, APP_NAME)
-        settings.setValue("knowledgeBasePath", self._report.target_root)
-        settings.sync()
-        try:
-            from datasheet_studio.infrastructure.storage.knowledge_vault import (
-                KnowledgeVault,
-            )
+        from datasheet_studio.infrastructure.storage.knowledge_vault import (
+            KnowledgeVault,
+        )
 
+        # Review P1: mark the vault accepted FIRST; publish the QSettings
+        # pointer only on success so it never references an unaccepted vault.
+        try:
             KnowledgeVault(self._report.target_root).mark_accepted()
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "تأیید نهایی", f"علامت‌گذاری ولت ناموفق بود:\n{exc}")
             return
+        settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        settings.setValue("knowledgeBasePath", self._report.target_root)
+        settings.sync()
         self._accept_button.setEnabled(False)
         self._rollback_button.setEnabled(False)
         self._summary_label.setText(
