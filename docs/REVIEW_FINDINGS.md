@@ -127,6 +127,19 @@ completed-result and next-action sections still described the Phase-8 gate.
 The handoff must be refreshed with every commit/quota boundary and must link to
 this review file.
 
+## Correction Status (ZCode, 2026-09-15 — all TDD, each committed separately)
+
+| Item | Status | Evidence |
+|---|---|---|
+| P0 unreviewed prefill | **Fixed & tested** — prefill only from `engine_view().values`; extracted values are inactive suggestions; per-required-field banner | commit `7b94a2e`, `tests/unit/test_review_p0_prefill.py` (4 red → green) |
+| P1 Phase-4 atomic accept + close safety | **Fixed & tested** — `mark_accepted()` before QSettings (failure publishes nothing); close refused while worker runs, cancels then closes | commit `91b5f3d`, `tests/unit/test_review_phase4_lifecycle.py` (2 red → green) |
+| P1 Phase-9 complete document | **Fixed & tested** — coverage-driven chunked extraction, no 40p/4k caps, deterministic merge + contradictions, per-chunk archive, omitted pages block the complete claim; dialog shows omissions | commit `52f7ccf`, `tests/unit/test_review_phase9_complete_doc.py` (4 red → green) |
+| P1 Phase-12 real core bank | **Partially fixed & tested** — provenance/uniqueness/coefficient/gap validation and import-time ordering enforced (5 red → green); no-CLI Persian pack manager shipped (2 tests). **REMAINING:** a real downloaded manufacturer pack with exact codes and per-field URL/licensing provenance — the TDK data in tests is a fixture; this stays OPEN and Phase 12 remains at `REVIEW` | commits `1e8cc94` |
+| P2 Phase-11 terminology + editors | **Terminology fixed & tested-documented** ("64-output-capable"; missing rail/scenario editors listed as open in `docs/modules/FLYBACK_DOMAIN_V2.md`). **REMAINING:** the editors themselves are NOT implemented — the multi-output desktop workflow is not claimed usable | commit `1e8cc94` |
+| Docs consistency | HANDOFF/contracts refreshed below; contracts aligned with PRODUCT_VISION/DEVELOPMENT_PLAN without converting narrowed scope into completion claims | final docs commit |
+
+Full regression after all corrections: **345 passed in 73.23 s**.
+
 ## Ordered Next Work for ZCode
 
 1. Do not start Phase 13.

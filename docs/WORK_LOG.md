@@ -454,3 +454,22 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: ZCode must follow `docs/REVIEW_FINDINGS.md` corrections before
   beginning Phase 13.
+
+## 2026-09-15 — Review corrections — P0 + P1(×3) + P2 applied via TDD, each committed separately
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: corrective implementation and test per owner instruction and
+  `docs/REVIEW_FINDINGS.md` (reviewer: OpenAI Codex)
+- Scope: no Phase-13 work. Ordered corrections with failing-test-first
+  discipline; per-item status table appended to `docs/REVIEW_FINDINGS.md`.
+- Changed: commits `42cce8d` (review docs preserved), `7b94a2e` (P0 prefill),
+  `91b5f3d` (Phase-4 lifecycle), `52f7ccf` (Phase-9 complete document),
+  `1e8cc94` (Phase-12 hardening + pack manager + Phase-11 terminology).
+- Verification: every fix has tests that were RED on the pre-fix code (11
+  new red→green tests total across four files); full regression after all
+  corrections **345 passed in 73.23 s**; compile check passed.
+- Not fixed (explicitly remaining): real manufacturer pack + per-field
+  URL/licensing provenance for Phase 12; Phase-11 rail/scenario editors;
+  anything Phase 13+.
+- Commit: this commit
+- Handoff: see the corrected HANDOFF below; Phase 12 stays at `REVIEW`.
