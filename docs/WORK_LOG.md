@@ -430,3 +430,27 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: owner checks the first supported core family's codes/drawings;
   Phase 13 (transformer feasibility) starts after acceptance.
+
+## 2026-09-15 — Cross-phase static review before Phase 13
+
+- Contributor: OpenAI Codex
+- Role: static review and documentation only; no implementation code changed
+- Requested by: project owner, specifically to assess Z.AI's work and update
+  Markdown for continuation while conserving Codex weekly usage
+- Scope: inspect Phase 1–12 commit evidence and the critical Phase 4/9/10/11/12
+  paths; refresh the stale handoff and record actionable corrections
+- Changed: added `docs/REVIEW_FINDINGS.md`; refreshed `docs/HANDOFF.md` and the
+  current-action section of `docs/DEVELOPMENT_PLAN.md`; appended this log entry
+- Verification: confirmed a clean branch at `483846b`, with HEAD equal to
+  `origin/feature/datasheet-to-design-v2`; inspected commit trailers/work logs
+  and the relevant source/contracts. No current test suite was run in this
+  review at the owner's request. ZCode's latest recorded result is 327 passing.
+- Findings: unreviewed AI values can prefill Flyback; extraction is capped at
+  40 pages × 4,000 characters; Phase-12 real pack/pack-manager and validation
+  gaps; Phase-4 acceptance/close lifecycle gaps; Phase-11 64-output wording and
+  missing advanced rail/scenario editors
+- Not verified: runtime behavior, current test result, real providers/browser,
+  real OCR, real controller PDFs, real user vault, or manufacturer pack data
+- Commit: this commit
+- Handoff: ZCode must follow `docs/REVIEW_FINDINGS.md` corrections before
+  beginning Phase 13.

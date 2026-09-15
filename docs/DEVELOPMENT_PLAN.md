@@ -590,13 +590,12 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 11 was accepted by the owner (2026-09-15). Phase 12 (real magnetics
-catalogue foundation) is implemented, tested, and pushed per
-`docs/modules/MAGNETICS_CATALOG.md`; it is awaiting the owner review gate:
-check exact ordering codes/drawings for the first supported core family
-(TDK EE19 example pack in tests). Recorded verification: full regression
-**327 passed in 67.01 s** (10 new tests: record/pack round-trip, the four
-rejection rules incl. mixed-manufacturer and undeclared bobbin
-compatibility, verified-import ban, pack diff preview, install/offline
-reload/rollback, and Flyback combo listing with geometry selection). Do
-not begin Phase 13 until the owner accepts the Phase 12 review.
+Phase 12 remains at `REVIEW`. ZCode recorded a full regression of **327 passed
+in 67.01 s**, but the 2026-09-15 static review found cross-phase corrective
+items documented in `docs/REVIEW_FINDINGS.md`. Most importantly, Flyback can
+currently prefill unreviewed AI-extracted values; Phase-9 extraction truncates
+the document context; Phase-4 activation/thread-close paths need hardening; and
+Phase 12 has pack primitives but no real official pack or no-CLI pack manager.
+Do not begin Phase 13. Apply the ordered, separately committed corrections in
+`docs/REVIEW_FINDINGS.md`, complete the real Phase-12 owner review, and obtain
+explicit owner acceptance first.

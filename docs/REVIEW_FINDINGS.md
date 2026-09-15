@@ -1,0 +1,142 @@
+# Datasheet Studio — Cross-Phase Review Findings
+
+**Status:** Open corrective items before Phase 13
+
+**Reviewed commit:** `483846b` (Phase 12)
+
+**Reviewer:** OpenAI Codex
+
+**Scope:** Static review of ZCode's Phase 1–12 commits and their Markdown/test
+evidence. The current 327-test suite was not independently rerun in this pass,
+at the owner's request to conserve Codex usage. ZCode's recorded results remain
+claims from its own runs, not a second independent verification.
+
+## Overall Assessment
+
+The work is structurally strong: phases are separated, commit trailers and the
+append-only log preserve AI attribution, schemas are typed, the SQLite index is
+rebuildable, provider failures are isolated, and untested real integrations are
+usually labelled honestly. The branch is clean and synchronized with origin.
+
+It is not yet safe to start Phase 13. The items below must remain visible and
+must not be converted into completed claims merely because unit tests pass.
+
+## P0 — Unreviewed AI Values Enter Flyback Inputs
+
+`tools/flyback_designer/tool.py` first reads `profile.engine_view()` but then
+falls back to `raw.get(key)` when an accepted value is absent. Consequently an
+AI-extracted, unreviewed value can prefill an active Flyback calculation. The
+banner can also say the profile is accepted when only one field is reviewed
+while other prefilled fields came from raw extraction.
+
+This conflicts with the product rule that AI cannot silently replace accepted
+engineering inputs.
+
+Required correction:
+
+1. Automatic prefill must use only reviewed/verified values from
+   `engine_view().values`.
+2. Extracted values may be shown as suggestions, but applying each one requires
+   an explicit user action and visible state.
+3. Add mixed-state tests: reviewed frequency + extracted current limit must
+   prefill only frequency; an all-extracted profile must not alter defaults.
+4. The banner/status must describe completeness per required field, not treat
+   one accepted field as acceptance of the whole profile.
+
+## P1 — Phase 9 Does Not Read the Complete Datasheet
+
+`services/controller_extraction.py::build_user_message` takes at most 40 pages
+and at most 4,000 characters per page. That is useful as a bounded prototype,
+but it does not satisfy the canonical complete-datasheet extraction workflow
+for long controller documents.
+
+Required correction:
+
+1. Drive extraction from the Phase-7 coverage ledger and account for every
+   page before calling a run complete.
+2. Use chunked/multi-pass extraction with a deterministic merge/contradiction
+   stage instead of silently truncating pages.
+3. Archive every chunk request/response plus the final merge artifact in the
+   AI run folder.
+4. Show omitted/failed/scanned pages explicitly and block a “complete” claim.
+
+## P1 — Phase 12 Is a Catalogue Framework, Not Yet a Real Core Bank
+
+Phase 12 supplies useful record/pack/cache primitives and selection from an
+already-installed pack. It does not yet provide a real downloaded manufacturer
+pack or a normal in-app install/update flow. The current acceptance claim is
+therefore “foundation implemented”, not “real EE19/17 bank delivered”.
+
+Additional validation gaps in `models/magnetics_catalog.py`:
+
+- source hash and evidence page are optional even though the contract says each
+  engineering record has provenance;
+- duplicate core/material/bobbin ordering codes are silently collapsed by
+  dictionary construction during validation;
+- partial/non-positive loss coefficients and invalid gap options are not
+  rejected;
+- `latest_catalog_pack` relies on lexicographic path/version ordering rather
+  than an explicit published/imported version timestamp.
+
+Required correction before transformer feasibility:
+
+1. Add one official, source-bound manufacturer pack with exact core, material,
+   and compatible bobbin ordering codes; keep every unreviewed value marked
+   extracted/reviewed, never verified automatically.
+2. Add a Persian desktop flow to preview/install/update/rollback a pack without
+   CLI use.
+3. Enforce provenance, uniqueness, curve completeness/domain, gap validation,
+   and explicit version ordering with tests.
+4. Record URL/document revision/hash/page/table and licensing/redistribution
+   status for the chosen source.
+
+## P1 — Phase 4 Activation and Worker-Close Safety
+
+Two Phase-4 paths are not covered by the current dialog tests:
+
+1. `_accept_upgrade` writes `knowledgeBasePath` to QSettings before
+   `mark_accepted()`. If marking fails, settings can point at an unaccepted
+   vault. Mark first, then publish the setting, or roll the setting back on
+   failure.
+2. The dialog's Close action remains available while `_MigrationWorker` is
+   running, and there is no close/reject handler that requests cancellation and
+   waits for thread completion. Prevent close while running or implement a
+   bounded cancel-and-wait lifecycle.
+
+Add failure-injection and close-during-run tests. Preserve the existing no-touch
+v1 guarantee.
+
+## P2 — Phase 11 Terminology and Missing Editors
+
+The old eight-output cap was removed, which is a real improvement, but the
+implementation is not literally unbounded: `MAX_OUTPUTS = 64`. The UI still
+edits only name/voltage/current/diode drop; isolation group, load range,
+priority, rectifier/capacitor references, feedback participation, and scenarios
+are domain defaults rather than user-editable design inputs.
+
+Required follow-up:
+
+- call the result “64-output-capable” instead of unbounded;
+- add the missing rail/scenario editors before claiming the requested
+  multi-output workflow is usable from the desktop.
+
+## Documentation Consistency Found
+
+Before this review, `docs/HANDOFF.md` said the active phase was 12 while its
+completed-result and next-action sections still described the Phase-8 gate.
+The handoff must be refreshed with every commit/quota boundary and must link to
+this review file.
+
+## Ordered Next Work for ZCode
+
+1. Do not start Phase 13.
+2. Make a focused Phase-10 safety correction for the P0 profile-prefill issue;
+   test, document, commit, and push it separately.
+3. Make a focused Phase-4 lifecycle/atomic-acceptance correction; test, document,
+   commit, and push separately.
+4. Correct the Phase-9 complete-document extraction contract/implementation.
+5. Finish the Phase-12 review gate with a real official pack, provenance rules,
+   and a no-CLI pack-management UI.
+6. Surface the missing Phase-11 rail/scenario editors before or as the first
+   explicitly documented UI slice that depends on them.
+7. Only then request owner acceptance to begin Phase 13.

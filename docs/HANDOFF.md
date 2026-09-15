@@ -2,73 +2,81 @@
 
 **Updated:** 2026-09-15
 
-**Contributor:** ZCode (Z.ai, GLM)
+**Last implementation contributor:** ZCode (Z.ai, GLM)
+
+**Review contributor:** OpenAI Codex (documentation/static review only)
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 12 — `REVIEW`
+**HEAD / origin:** `483846b` — Phase 12 magnetics catalogue foundation
 
-## Completed Result
+**Active phase:** Phase 12 — `REVIEW`; corrective work required before Phase 13
 
-Phases 1–7 were accepted. Phase 8 (controller profile schema) and Phase 9 (AI extraction artifacts + review UI) are implemented, tested, and pushed per their contracts:
+## Current Result
 
-- `models/controller_profile.py` — strict field registry (~27 fields with
-  units/ranges/enums; required: frequency_khz, current_limit_a,
-  switch_voltage_limit_v), Phase 2 evidence/review states, the AI cap
-  (`from_extraction` rejects reviewed/verified inputs), and
-  `engine_view()` exposing only accepted values + explicit unknowns and
-  contradictions (the future Flyback-engine contract). Versioned envelope
-  (`controller-profile`, schema 2).
-- `KnowledgeVault.write_controller_profile` stores
-  `records/components/<maker>/<part>/<version>/profile.json` and upserts
-  the index (profiles searchable).
-- Registered tool **Tools → Knowledge Base → پروفایل کنترلر…** — editable
-  Persian RTL form (value/unit/review-state/page+table per field,
-  open/save to vault or JSON).
+Phases 1–12 have focused commits with AI trailers and work-log entries. ZCode
+recorded a full regression of **327 passed in 67.01 s** at Phase 12. This review
+did not rerun that current suite at the owner's request to conserve Codex usage;
+the result is therefore ZCode's recorded evidence, not an independent rerun.
 
-Recorded verification: full regression **293 passed in 68.24 s** (16 new
-tests), compile check and offscreen startup smoke passed (four tools).
+The branch was clean and synchronized with
+`origin/feature/datasheet-to-design-v2` at review start. The newest functional
+slice provides typed exact core/material/bobbin pack records, offline vault
+storage/rollback, pack diffing, and Flyback selection from installed packs. No
+real manufacturer pack or end-user pack installer/updater is present yet.
 
-## Working Tree
+## Mandatory Review Findings
 
-Expected clean except ignored local artifacts (`build/`, `dist/`,
-`dist-native/`, `.venv`, caches, crash reports, local PDFs). Never commit
-those. Preserve any later uncommitted owner/agent work.
+Read `docs/REVIEW_FINDINGS.md` before any implementation. Key blockers:
 
-## Not Verified
+1. **P0:** Flyback currently falls back to raw extracted profile fields and can
+   prefill calculations with unreviewed AI values. Automatic prefill must use
+   reviewed/verified values only.
+2. **P1:** Phase-9 extraction silently limits context to 40 pages × 4,000
+   characters, so it is not complete-datasheet extraction.
+3. **P1:** Phase 12 is a catalogue framework only: no real official pack,
+   no normal in-app install/update path, and provenance/uniqueness/curve
+   validation gaps remain.
+4. **P1:** Phase-4 acceptance publishes QSettings before the vault is marked
+   accepted, and close-during-migration lacks a cancel/wait lifecycle.
+5. **P2:** Phase 11 supports at most 64 outputs and does not yet expose the new
+   isolation/load/priority/feedback/scenario fields in the desktop editor.
 
-- A real OCR engine (none selected yet — owner decision: e.g. Tesseract or
-  an AI OCR service; the adapter boundary is ready).
-- Coverage runs against the owner's real DK124/DK125/TMG0656 documents
-  (Phase 7 review gate).
-- Open items inherited from earlier gates: real DigiKey credentials, the
-  owner's real-library migration/vault flows.
-- `chunks.json` / `evidence.json` artifacts are intentionally out of scope
-  (later phases).
+## What ZCode Did Well
 
-## Next Permitted Action
+- Markdown-first phase contracts, focused commits, explicit AI attribution,
+  and an append-only work log are consistently present.
+- Domain records, evidence states, content hashing, rebuildable FTS indexing,
+  provider isolation, and v1-preservation paths have substantial automated
+  coverage.
+- Real DigiKey, embedded-browser, OCR, real-controller extraction, owner-vault,
+  and real magnetics-pack limitations were generally documented rather than
+  presented as verified.
+- HEAD and origin matched at the review boundary; no uncommitted implementation
+  work was present.
 
-Stop at the Phase 8 owner-review gate. The owner should open
-**Tools → Knowledge Base → پروفایل کنترلر…** and approve the editable form
-and the extracted field set (sections, units, enums, required fields).
-Corrections stay within Phase 8. After acceptance, the next phase is
-Phase 9 — AI extraction artifacts and review UI — starting with its own
-Markdown contract. Do not start Phase 9 before that.
+## Next Permitted Action for ZCode
 
-## Required Reading for the Next Contributor
+Do **not** begin Phase 13. Follow the ordered correction sequence in
+`docs/REVIEW_FINDINGS.md`, starting with the Phase-10 P0 safety issue. Each
+correction gets its own tests, Markdown update, attributed commit, and push.
+After the corrections and a real Phase-12 pack/UI review, stop for owner
+acceptance before transformer-feasibility work.
 
-1. `AGENTS.md` if present at the repository/workspace boundary
-2. `docs/HANDOFF.md`, `docs/DEVELOPMENT_PLAN.md`, and `docs/PRODUCT_VISION.md`
-3. `docs/modules/CONTROLLER_PROFILE_SCHEMA.md` (Phase 8 contract)
-3b. `docs/modules/TEXT_EXTRACTION_COVERAGE.md` (Phase 7 contract)
-4. `docs/modules/KNOWLEDGE_BASE_SCHEMA.md`, `KNOWLEDGE_INDEX.md`,
-   `LIBRARY_UPGRADE.md`, `ONLINE_ADAPTER_FRAMEWORK.md`
-5. `docs/CURRENT_STATUS.md` (section 26 is the newest record) and
-   `docs/WORK_LOG.md`
-6. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (incl. ADR-021)
+## Required Reading
+
+1. `docs/REVIEW_FINDINGS.md`
+2. `docs/DEVELOPMENT_PLAN.md` and `docs/PRODUCT_VISION.md`
+3. `docs/modules/FLYBACK_HANDOFF.md`
+4. `docs/modules/AI_EXTRACTION_ARTIFACTS.md`
+5. `docs/modules/LIBRARY_UPGRADE.md`
+6. `docs/modules/FLYBACK_DOMAIN_V2.md`
+7. `docs/modules/MAGNETICS_CATALOG.md`
+8. `docs/CURRENT_STATUS.md` sections 19–26 and `docs/WORK_LOG.md`
 
 ## Verification Rule
 
-Do not repeat the results above as current facts without rerunning the
-relevant checks in the new checkout. Do not infer contributor identity from
-Git author; use commit trailers and the append-only work log.
+Do not repeat recorded test counts as current facts without rerunning the
+relevant checks. Do not use unit-test success to promote illustrative data or
+untested provider/browser/OCR behavior to verified. Never use unreviewed AI
+facts as deterministic engineering inputs without an explicit user action.
