@@ -44,6 +44,7 @@ files = [
     "src/datasheet_studio/infrastructure/pdf/reader.py",
     "src/datasheet_studio/infrastructure/storage/__init__.py",
     "src/datasheet_studio/infrastructure/storage/library_store.py",
+    "src/datasheet_studio/infrastructure/storage/knowledge_index.py",
     "src/datasheet_studio/models/__init__.py",
     "src/datasheet_studio/models/library_item.py",
     "src/datasheet_studio/models/page_annotation.py",

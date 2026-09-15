@@ -128,8 +128,8 @@ only location of a requirement, decision, test result, or unfinished action.
 |---:|---|---|---|
 | 0 | Product contract and staged plan | `ACCEPTED` | Product vision, architecture direction, and this execution plan pushed |
 | 1 | Stabilize and preserve current baseline | `ACCEPTED` | Existing native Flyback v1/tool registry changes tested and pushed separately |
-| 2 | Knowledge-base domain and schema | `REVIEW` | Versioned records, hashes, provenance, revisions, and validation without UI migration |
-| 3 | Rebuildable SQLite/FTS index | `PLANNED` | Fast metadata/full-text index that can be deleted and rebuilt safely |
+| 2 | Knowledge-base domain and schema | `ACCEPTED` | Versioned records, hashes, provenance, revisions, and validation without UI migration |
+| 3 | Rebuildable SQLite/FTS index | `REVIEW` | Fast metadata/full-text index that can be deleted and rebuilt safely |
 | 4 | Safe Library v1 → v2 desktop upgrade | `PLANNED` | Preview, backup, import, rollback, and no-delete migration UI |
 | 5 | Bottom search strip UX shell | `PLANNED` | Collapsible bottom search using mock/local adapter data for UX approval |
 | 6 | Online source adapter framework | `PLANNED` | Provider-independent search, normalized results, safe download, first official adapter |
@@ -590,10 +590,11 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 1 was accepted by the owner ("ادامه بده", 2026-09-15). Phase 2
-(knowledge-base domain and schema) is implemented, tested, and pushed; it is
-awaiting the owner review gate: the example records for DK124 and one EE19/17
-core in `docs/examples/knowledge_base/`. Recorded verification: full
-regression **187 passed in 63.51 s** (44 new schema/hash tests), compile
-check passed, and the domain module has no Qt or network dependency. Do not
-begin Phase 3 until the owner accepts the Phase 2 schema.
+Phase 2 was accepted by the owner (2026-09-15). Phase 3 (rebuildable
+SQLite/FTS index) is implemented, tested, and pushed; it is awaiting the
+owner review gate: search syntax and result ordering with representative
+part/core queries (see `docs/modules/KNOWLEDGE_INDEX.md` §5–§6). Recorded
+verification: full regression **206 passed in 66.20 s** (19 new index tests
+including rollback, atomic-rebuild equivalence, corruption recovery, and a
+1,500-document performance fixture: build ≈ 0.2 s, queries ≤ 4 ms). Do not
+begin Phase 4 until the owner accepts the Phase 3 review.

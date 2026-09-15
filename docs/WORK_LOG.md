@@ -107,3 +107,44 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: owner reviews the DK124 and EE19/17 example records at the Phase 2
   gate; Phase 3 (SQLite/FTS index) starts only after acceptance.
+
+## 2026-09-15 — Phase 3 — Rebuildable SQLite/FTS index implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("اوکی / ادامه بده" — acceptance of Phase 2 and
+  continuation to Phase 3)
+- Scope: Phase 3 only per `docs/DEVELOPMENT_PLAN.md` — SQLite/FTS index
+  adapter over the Phase 2 domain records, atomic rebuild, corruption
+  recovery, search grammar with maker/type/core/material/verified filters,
+  page-aware and field-aware search context, and a recorded performance
+  result. No UI, no library-folder migration.
+- Changed: added `docs/modules/KNOWLEDGE_INDEX.md` (contract first),
+  `src/datasheet_studio/infrastructure/storage/knowledge_index.py`,
+  `tests/unit/test_knowledge_index.py`, one `pyproject.toml` deploy-list
+  entry, and status updates (`docs/DEVELOPMENT_PLAN.md`,
+  `docs/CURRENT_STATUS.md` §17, `docs/HANDOFF.md`, this log).
+- Verification: 19 new unit tests pass — lifecycle/upsert/remove, unique-key
+  conflict handling, transaction rollback leaves index unchanged,
+  delete-file-and-rebuild produces identical search results (documents,
+  fields, and page snippets), corruption recovery from a garbage file,
+  deterministic ordering, Persian free-text search, filter behaviors
+  (maker/type/core/material/verified), and a 1,500-document synthetic
+  performance fixture (build ≈ 0.2 s; part/field/page queries ≤ 4 ms;
+  asserted budgets build < 90 s, query < 2 s). Full regression **206 passed
+  in 66.20 s**. FTS5 availability (incl. Persian tokenization) verified
+  against the bundled SQLite 3.49.1 before implementation.
+- Issues found and fixed during this pass: (1) the first design shared one
+  FTS table across record kinds and collided on rowids — replaced with one
+  FTS table per kind; (2) FTS5 auxiliary functions (`snippet`/`bm25`) do not
+  accept bare table aliases in joined queries — rewritten with full table
+  names; (3) three test expectations were corrected against verified
+  tokenizer behavior (`DK124` is a single token; quoted phrases with spaces
+  are not supported) and a `verified` field needs reviewer fields.
+- Not verified: no desktop UI exists for the index (by design); the UI-thread
+  offload requirement is documented for Phase 4/5 integration but not
+  exercised; timings are from the development machine only.
+- Commit: this commit
+- Handoff: owner reviews search syntax and result ordering (representative
+  part/core queries) at the Phase 3 gate; Phase 4 (safe v1→v2 library
+  upgrade UI) starts only after acceptance.

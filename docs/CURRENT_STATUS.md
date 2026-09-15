@@ -880,3 +880,36 @@ in `tests/fixtures/knowledge_base/` and are validated by the test suite.
 
 Verification: `compileall` passed; full regression **187 passed in 63.51 s**
 (143 previous + 44 new schema/hash tests).
+
+---
+
+## 17. Phase 3 — Rebuildable SQLite/FTS Index — 2026-09-15
+
+Implemented the Phase 3 slice per `docs/modules/KNOWLEDGE_INDEX.md`
+(contract written before code):
+
+- `src/datasheet_studio/infrastructure/storage/knowledge_index.py`: a
+  stdlib-only SQLite/FTS5 adapter (`KnowledgeIndex`) over the Phase 2 domain
+  records. Separate rowid-aligned FTS tables per record kind (documents,
+  components, magnetics, fields, page texts); incremental upsert/remove;
+  explicit transactions with rollback; **atomic rebuild** (temp file +
+  `os.replace`) that never leaves a half-written index; corruption recovery
+  (`KnowledgeIndex.recover`) that deletes a broken file and rebuilds.
+- Search grammar: free terms are prefix-AND FTS matches (Persian text works
+  via the unicode61 tokenizer), with `maker:`, `type:`, `core:`,
+  `material:`, and `verified:` filters. Hits are grouped by kind and carry
+  page/field context plus highlighted snippets. Verified tokenizer behavior
+  documented: `DK124` is one token, so `dk1` matches but a bare `124` does
+  not.
+- SQLite remains an index only (ADR-019); durable truth stays in record
+  files, proven by the delete-and-rebuild equivalence test.
+- Threading rule documented: the adapter is synchronous; the future UI
+  (Phase 5 strip, Phase 4 migration) must call it from a worker thread.
+  Phase 3 ships no UI.
+
+Verification: full regression **206 passed in 66.20 s** (19 new tests:
+lifecycle, unique-key conflicts, transaction rollback, atomic-rebuild
+equivalence incl. page/field snippets, corruption recovery from a garbage
+file, query grammar incl. Persian free text, and a synthetic 1,500-document /
+6,000-field / 3,000-page performance fixture — build ≈ 0.2 s, queries ≤ 4 ms
+on the development machine).
