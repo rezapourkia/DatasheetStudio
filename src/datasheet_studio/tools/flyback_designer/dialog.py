@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 import logging
 from pathlib import Path
 
@@ -64,6 +65,10 @@ class FlybackDesignerDialog(QDialog):
             core.core_id: deepcopy(core) for core in SAMPLE_CORES
         }
         self._last_result: CalculationResult | None = None
+        # Round-3 fix: the form shows only part of the domain; everything
+        # else (ic_id, part ids, scenarios, per-output v2 fields) is
+        # preserved from the last applied project on every rebuild.
+        self._loaded_project: FlybackProject = default_project()
         self._recalculate_timer = QTimer(self)
         self._recalculate_timer.setSingleShot(True)
         self._recalculate_timer.setInterval(180)
@@ -404,6 +409,11 @@ class FlybackDesignerDialog(QDialog):
             self._outputs_table.setItem(row, column, item)
 
     def _project_from_form(self) -> FlybackProject:
+        # Round-3 fix: start from the last applied project and overwrite ONLY
+        # the fields the form edits; everything the form does not show
+        # (ic_id, part ids, scenarios, per-output v2 fields) survives a save.
+        base = deepcopy(self._loaded_project)
+        preserved_outputs = list(base.outputs)
         outputs: list[OutputSpec] = []
         for row in range(self._outputs_table.rowCount()):
             def cell(column: int) -> str:
@@ -411,19 +421,30 @@ class FlybackDesignerDialog(QDialog):
                 return item.text().strip() if item else ""
 
             try:
-                outputs.append(
-                    OutputSpec(
-                        name=cell(0) or f"خروجی {row + 1}",
-                        voltage_v=float(cell(1)),
-                        current_a=float(cell(2)),
-                        diode_drop_v=float(cell(3)),
-                    )
-                )
+                name = cell(0) or f"خروجی {row + 1}"
+                voltage_v = float(cell(1))
+                current_a = float(cell(2))
+                diode_drop_v = float(cell(3))
             except ValueError as exc:
                 raise ValueError(f"اعداد خروجی {row + 1} معتبر نیستند.") from exc
+            if row < len(preserved_outputs):
+                kept = deepcopy(preserved_outputs[row])
+                kept.name = name
+                kept.voltage_v = voltage_v
+                kept.current_a = current_a
+                kept.diode_drop_v = diode_drop_v
+                outputs.append(kept)
+            else:
+                outputs.append(
+                    OutputSpec(
+                        name=name, voltage_v=voltage_v,
+                        current_a=current_a, diode_drop_v=diode_drop_v,
+                    )
+                )
 
         value = lambda key: self._fields[key].value()
-        return FlybackProject(
+        project = replace(
+            base,
             name=self._name_edit.text().strip() or "پروژه بدون نام",
             vin_min_v=value("vin_min_v"),
             vin_max_v=value("vin_max_v"),
@@ -454,6 +475,7 @@ class FlybackDesignerDialog(QDialog):
             notes=self._notes_edit.toPlainText(),
             outputs=outputs,
         )
+        return project
 
     def _core_from_form(self) -> CoreSpec:
         value = lambda key: self._fields[key].value()
@@ -474,6 +496,7 @@ class FlybackDesignerDialog(QDialog):
         )
 
     def _apply_project(self, project: FlybackProject, core: CoreSpec) -> None:
+        self._loaded_project = deepcopy(project)
         self._loading = True
         try:
             self._cores_by_id[core.core_id] = deepcopy(core)
