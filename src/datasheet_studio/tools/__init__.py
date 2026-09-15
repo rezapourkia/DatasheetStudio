@@ -4,6 +4,7 @@ from .flyback_designer.tool import FlybackDesignerTool
 from .registry import Tool, ToolContext, ToolRegistry
 from .symbol_creator_tool import SymbolCreatorTool
 from .text_coverage_tool import DocumentTextCoverageTool
+from .controller_profile_tool import ControllerProfileTool
 
 
 def create_default_tool_registry() -> ToolRegistry:
@@ -11,6 +12,7 @@ def create_default_tool_registry() -> ToolRegistry:
     registry.register(SymbolCreatorTool())
     registry.register(FlybackDesignerTool())
     registry.register(DocumentTextCoverageTool())
+    registry.register(ControllerProfileTool())
     return registry
 
 

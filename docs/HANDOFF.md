@@ -6,7 +6,7 @@
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 7 — `REVIEW`
+**Active phase:** Phase 8 — `REVIEW`
 
 ## Completed Result
 

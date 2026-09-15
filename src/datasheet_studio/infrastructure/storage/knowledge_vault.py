@@ -197,6 +197,51 @@ class KnowledgeVault:
             raise VaultError(f"نوشتن رکورد ممکن نشد ({record_dir}): {exc}") from exc
         return record_md
 
+    def write_controller_profile(self, profile, index: bool = True) -> Path:
+        """Store a controller profile envelope under records/components."""
+
+        from datasheet_studio.models.controller_profile import dump_controller_profile
+
+        record_dir = (
+            self._root
+            / "records"
+            / "components"
+            / _safe_segment(profile.manufacturer)
+            / _safe_segment(profile.part_number)
+            / _safe_segment(profile.profile_version)
+        )
+        suffix = 2
+        while record_dir.exists():
+            record_dir = record_dir.with_name(f"{record_dir.name}-{suffix}")
+            suffix += 1
+        record_dir.mkdir(parents=True, exist_ok=False)
+        target = record_dir / "profile.json"
+        try:
+            target.write_text(dump_controller_profile(profile), encoding="utf-8")
+        except OSError as exc:
+            raise VaultError(f"نوشتن پروفایل کنترلر ممکن نشد: {exc}") from exc
+        if index:
+            from datasheet_studio.models.knowledge_base import ComponentProfile
+
+            index_record = ComponentProfile(
+                manufacturer=profile.manufacturer,
+                part_number=profile.part_number,
+                profile_version=profile.profile_version,
+                source_object_sha256=profile.source_object_sha256,
+                device_type="switching-controller",
+                package=profile.package,
+                fields=profile.fields,
+                contradictions=profile.contradictions,
+                unknown_facts=profile.unknown_facts,
+                notes=profile.notes,
+            )
+            knowledge_index = KnowledgeIndex.open(self.index_path)
+            try:
+                knowledge_index.upsert_component(index_record)
+            finally:
+                knowledge_index.close()
+        return target
+
     # -- migration artifacts -------------------------------------------------------
 
     def backup_manifest(self, manifest_path: str | Path) -> Path:

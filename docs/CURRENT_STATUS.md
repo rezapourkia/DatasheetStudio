@@ -1098,3 +1098,34 @@ in the test constant and pymupdf clipping single-line page text at the page
 edge — now wrapped). Not verified: real OCR (no engine selected yet — owner
 decision), and coverage runs against the owner's real DK124/DK125/TMG0656
 documents (review gate).
+
+---
+
+## 22. Phase 8 — Controller Profile and Evidence Schema — 2026-09-15
+
+Implemented per `docs/modules/CONTROLLER_PROFILE_SCHEMA.md`:
+
+- `models/controller_profile.py`: strict controller field registry
+  (`FIELD_SPECS`: ~27 canonical fields across limits/timing/switch/startup/
+  protection/feedback/mode/application with units, numeric ranges, enums;
+  required: frequency_khz, current_limit_a, switch_voltage_limit_v).
+  `ControllerProfile` reuses Phase 2 `EvidenceField` evidence and review
+  states; unknown field names, wrong units, out-of-range values,
+  unsupported enum values, and duplicate fields are rejected.
+  `from_extraction` enforces the AI cap (reviewed/verified inputs are
+  rejected — automation can only produce unreviewed/extracted).
+  `engine_view()` exposes **only accepted (reviewed/verified) values with
+  unit + evidence page plus explicit unknowns and contradictions** — the
+  Flyback engine's future contract. Versioned envelope serialization
+  (`controller-profile`, schema 2) rejects other versions.
+- `KnowledgeVault.write_controller_profile`: stores
+  `records/components/<maker>/<part>/<version>/profile.json` and upserts the
+  Phase 3 index (profiles searchable, e.g. `dk124` component hits).
+- Registered tool **Tools → Knowledge Base → پروفایل کنترلر…** with the
+  editable Persian RTL form: all registry fields grouped by section with
+  value/unit/review-state/evidence page+table editors, identity inputs,
+  open/save (vault when active, JSON file otherwise).
+
+Verification: full regression **293 passed in 68.24 s** (16 new tests).
+Not verified: AI extraction (Phase 9), Flyback consumption (Phase 10+), and
+the owner's approval of the field set/form (review gate).

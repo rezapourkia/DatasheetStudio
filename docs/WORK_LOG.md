@@ -328,3 +328,29 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Handoff: owner runs Tools → Knowledge Base → پوشش متن سند… on a
   representative datasheet at the Phase 7 gate; Phase 8 (controller profile
   and evidence schema) starts only after acceptance.
+
+## 2026-09-15 — Phase 8 — Controller profile and evidence schema implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه بده" — Phase 7 acceptance)
+- Scope: Phase 8 only per `docs/DEVELOPMENT_PLAN.md`.
+- Changed: added `docs/modules/CONTROLLER_PROFILE_SCHEMA.md` (contract
+  first), `models/controller_profile.py`,
+  `KnowledgeVault.write_controller_profile`,
+  `ui/dialogs/controller_profile_dialog.py`,
+  `tools/controller_profile_tool.py` (registered), `pyproject.toml` deploy
+  entries, tests (`test_controller_profile.py`,
+  `test_controller_profile_dialog.py`), and status doc updates;
+  `test_flyback_dialog.py` tool expectations updated for the fourth tool.
+- Verification: 16 new tests (complete/partial/contradictory engine views,
+  wrong-unit/wrong-page/unsupported-mode/out-of-range/unknown-field
+  rejection, AI reviewed/verified cap, envelope round-trip + version/kind
+  rejection, vault storage with index searchability, offscreen form
+  load/collect/save round-trip); full regression **293 passed in 68.24 s**;
+  compile + offscreen startup smoke (four tools) passed.
+- Not verified: AI extraction automation (Phase 9), Flyback consumption of
+  engine views (Phase 10+), owner approval of field set/form (review gate).
+- Commit: this commit
+- Handoff: owner reviews the form and field set at the Phase 8 gate; Phase 9
+  (AI extraction artifacts and review UI) starts only after acceptance.
