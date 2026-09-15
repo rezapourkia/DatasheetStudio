@@ -35,27 +35,33 @@ from datasheet_studio.services.text_extraction import TextExtractionService
 
 
 class _AiWorker(QThread):
-    done = Signal(object, str, str)  # result, request, response
+    done = Signal(object)  # CompleteExtraction
     failed = Signal(str)
 
-    def __init__(self, chat, part_number, page_texts, page_count, source_hash,
-                 cancel_event, parent=None):
+    def __init__(self, chat, part_number, page_texts, complete_pages,
+                 page_count, source_hash, archive_root, cancel_event, parent=None):
         super().__init__(parent)
         self._chat = chat
         self._part = part_number
         self._texts = page_texts
+        self._complete_pages = tuple(complete_pages)
         self._count = page_count
         self._hash = source_hash
+        self._archive = archive_root
         self._cancel = cancel_event
 
     def run(self):
+        from datasheet_studio.services.controller_extraction import extract_complete
+
         try:
-            result, request, response = run_extraction(
+            outcome = extract_complete(
                 self._chat,
                 part_number=self._part,
                 page_texts=self._texts,
+                complete_pages=self._complete_pages,
                 page_count=self._count,
                 source_hash=self._hash,
+                archive_root=self._archive,
                 should_cancel=self._cancel.is_set,
             )
         except ExtractionRunError as exc:
@@ -63,7 +69,7 @@ class _AiWorker(QThread):
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(f"خطای غیرمنتظره: {exc}")
         else:
-            self.done.emit(result, request, response)
+            self.done.emit(outcome)
 
 
 class AiExtractionReviewDialog(QDialog):
@@ -184,12 +190,26 @@ class AiExtractionReviewDialog(QDialog):
 
         def _ready(coverage, texts):
             self._source_hash = coverage.source_hash
+            from datasheet_studio.services.text_extraction import COMPLETE_STATUSES
+
+            complete_pages = tuple(
+                page.page for page in coverage.pages
+                if page.status in COMPLETE_STATUSES and page.page in texts
+            )
+            archive_root = None
+            vault_path = (self._vault_path_getter() or "").strip()
+            if vault_path:
+                from pathlib import Path as _P
+
+                archive_root = _P(vault_path) / "ai-runs"
             self._worker = _AiWorker(
                 self._chat,
                 Path_stem(self._pdf_path),
                 texts,
+                complete_pages,
                 coverage.page_count,
                 coverage.source_hash,
+                archive_root,
                 self._cancel_event,
                 self,
             )
@@ -213,10 +233,18 @@ class AiExtractionReviewDialog(QDialog):
 
     # -- review -------------------------------------------------------------------
 
-    def _on_done(self, result, request, response):
+    def _on_done(self, outcome):
+        result = outcome.result
         self._result = result
-        self._request_text = request
-        self._response_text = response
+        self._request_text = ""  # archived per-chunk by extract_complete
+        self._response_text = ""
+        if outcome.omitted_pages:
+            shown = "، ".join(map(str, outcome.omitted_pages[:12]))
+            self._status.setText(
+                "⚠️ استخراج «کامل» نیست — صفحات حساب‌نشده: " + shown
+                + ("…" if len(outcome.omitted_pages) > 12 else "")
+                + " (برای این صفحات ابتدا پوشش متن را کامل کنید.)"
+            )
         self._progress.hide()
         self._cancel_button.setEnabled(False)
         self._retry_button.show()

@@ -62,22 +62,47 @@ def load_prompt() -> str:
     return PROMPT_PATH.read_text(encoding="utf-8")
 
 
+def chunk_plan(
+    page_texts: dict[int, str], chunk_pages: int = 10
+) -> list[tuple[int, list[int]]]:
+    """Deterministically split ALL pages into ordered chunks (no caps)."""
+
+    pages = sorted(page_texts)
+    return [
+        (index, pages[start : start + chunk_pages])
+        for index, start in enumerate(range(0, len(pages), chunk_pages), start=1)
+    ]
+
+
 def build_user_message(
-    part_number: str, page_texts: dict[int, str], max_pages: int = 40
+    part_number: str,
+    page_texts: dict[int, str],
+    chunk_pages: int | None = None,
+    chunk_index: int | None = None,
 ) -> str:
+    """User message over the given pages — never truncated (review P1).
+
+    With ``chunk_index`` only that chunk's pages are included; otherwise
+    every page. Per-page text is passed in full — no silent caps.
+    """
+
     allowed = "\n".join(
         f"- {spec.name} [{spec.unit or 'enum'}]"
         + (f" (one of: {', '.join(spec.enum_values)})" if spec.enum_values else "")
         for spec in FIELD_SPECS.values()
     )
-    pages = sorted(page_texts)[:max_pages]
+    if chunk_index is not None:
+        plan = dict(chunk_plan(page_texts, chunk_pages or 10))
+        pages = plan.get(chunk_index, [])
+    else:
+        pages = sorted(page_texts)
     context = "\n\n".join(
-        f"<!-- page:{number} -->\n{page_texts[number][:4000]}" for number in pages
+        f"<!-- page:{number} -->\n{page_texts[number]}" for number in pages
     )
     return (
         f"Extract the controller profile for part «{part_number or 'unknown'}».\n\n"
         f"Allowed fields (name [unit]):\n{allowed}\n\n"
-        f"Document text with page markers:\n{context}\n\n"
+        f"Document text with page markers (extract ONLY from these pages, cite them):\n{context}\n\n"
         "Respond with ONLY the JSON object per the system instructions."
     )
 
@@ -167,6 +192,154 @@ def run_extraction(
     result = parse_response(response, page_count)
     result.run_id = uuid4().hex[:12]
     return result, f"{system}\n\n---\n\n{user}", response
+
+
+@dataclass
+class CompleteExtraction:
+    """Outcome of a coverage-driven, chunked complete-document run."""
+
+    result: ExtractionResult
+    omitted_pages: list[int]
+    complete: bool
+    chunk_count: int
+
+
+def extract_complete(
+    chat: ChatCallable,
+    *,
+    part_number: str,
+    page_texts: dict[int, str],
+    complete_pages,
+    page_count: int,
+    source_hash: str,
+    chunk_pages: int = 10,
+    archive_root: Path | None = None,
+    provider: str = "",
+    model: str = "",
+    should_cancel: CancelCheck | None = None,
+) -> CompleteExtraction:
+    """Chunked multi-pass extraction with a deterministic merge (review P1).
+
+    Driven by the Phase-7 coverage ledger: only ledger-complete pages are
+    sent; the rest are reported as ``omitted_pages`` and the run can never
+    claim ``complete`` while any page is unaccounted for. Every chunk
+    request/response plus the merge artifact are archived under
+    ``archive_root/<run-id>/`` when a root is given.
+    """
+
+    eligible = {page: page_texts[page] for page in complete_pages if page in page_texts}
+    omitted = sorted(set(range(1, page_count + 1)) - set(eligible))
+    system = load_prompt()
+    merged = ExtractionResult(run_id=uuid4().hex[:12])
+    run_id = merged.run_id
+    conflicts: dict[str, list] = {}
+    chunk_reports: list[dict] = []
+
+    for index, pages in chunk_plan(eligible, chunk_pages):
+        if should_cancel and should_cancel():
+            raise ExtractionRunError("استخراج پیش از ارسال لغو شد.")
+        user = build_user_message(part_number, eligible, chunk_pages, index)
+        prompt = f"{system}\n\n---\n\n{user}"
+        try:
+            response = chat(prompt)
+        except Exception as exc:  # noqa: BLE001 - provider failure
+            raise ExtractionRunError(
+                f"ارتباط با ارائه‌دهندهٔ AI ناموفق بود: {exc}"
+            ) from exc
+        chunk_result = parse_response(response, page_count)
+        chunk_reports.append(
+            {
+                "chunk": index,
+                "pages": pages,
+                "ok": chunk_result.ok,
+                "issues": [i.__dict__ for i in chunk_result.issues],
+            }
+        )
+        merged.issues.extend(chunk_result.issues)
+        if not merged.manufacturer and chunk_result.manufacturer:
+            merged.manufacturer = chunk_result.manufacturer
+        if not merged.part_number and chunk_result.part_number:
+            merged.part_number = chunk_result.part_number
+        merged.package = merged.package or chunk_result.package
+        merged.unknown_facts.extend(chunk_result.unknown_facts)
+        seen = {item["name"] for item in merged.candidate_fields}
+        for item in chunk_result.candidate_fields:
+            if item["name"] in seen:
+                conflicts.setdefault(item["name"], []).append(item)
+                continue  # deterministic merge: first occurrence wins
+            merged.candidate_fields.append(item)
+            seen.add(item["name"])
+        if archive_root is not None:
+            chunk_dir = archive_root / run_id / "chunks" / f"chunk-{index}"
+            chunk_dir.mkdir(parents=True, exist_ok=True)
+            (chunk_dir / "request.md").write_text(prompt, encoding="utf-8")
+            (chunk_dir / "response.md").write_text(response, encoding="utf-8")
+
+    for name, items in conflicts.items():
+        first = next((i for i in merged.candidate_fields if i["name"] == name), None)
+        values = [str(first.get("value")) if first else "?"] + [
+            str(i.get("value")) for i in items
+        ]
+        pages_seen = ([int(first.get("page", 0))] if first else []) + [
+            int(i.get("page", 0)) for i in items
+        ]
+        merged.contradictions.append(
+            f"تناقض «{name}»: مقادیر {' مقابل '.join(dict.fromkeys(values))}"
+            f" در صفحات {', '.join(str(p) for p in dict.fromkeys(pages_seen))}"
+            " — مقدار نخست نگه داشته شد؛ بازبینی لازم است."
+        )
+
+    # 'Complete' means page accounting is closed (review P1): every page
+    # was eligible and every chunk validated. Contradictions are surfaced
+    # for human review and do not by themselves block the claim.
+    complete = (
+        not omitted
+        and not merged.issues
+        and bool(eligible)
+        and set(eligible) == set(range(1, page_count + 1))
+    )
+    if archive_root is not None:
+        run_dir = archive_root / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "merge.md").write_text(
+            "# ادغام چانک‌ها\n\n"
+            f"- چانک‌ها: {len(chunk_reports)}\n"
+            "- صفحات حذف‌شده: "
+            + (", ".join(map(str, omitted)) or "—")
+            + f"\n- تناقض‌ها: {len(conflicts)}\n\n## فیلدهای نهایی\n"
+            + "\n".join(
+                f"- {item['name']} = {item.get('value')} (صفحه {item.get('page')})"
+                for item in merged.candidate_fields
+            ),
+            encoding="utf-8",
+        )
+        (run_dir / "metadata.json").write_text(
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "prompt_version": PROMPT_VERSION,
+                    "provider": provider,
+                    "model": model,
+                    "source_hash": source_hash,
+                    "chunks": len(chunk_reports),
+                    "chunk_reports": chunk_reports,
+                    "omitted_pages": omitted,
+                    "complete": complete,
+                    "validation_ok": merged.ok,
+                    "contradictions": merged.contradictions,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    return CompleteExtraction(
+        result=merged,
+        omitted_pages=omitted,
+        complete=complete,
+        chunk_count=len(chunk_reports),
+    )
 
 
 def accepted_profile(

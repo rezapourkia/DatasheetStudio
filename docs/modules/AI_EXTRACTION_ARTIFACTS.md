@@ -7,6 +7,16 @@
 
 ## Contract
 
+0. **Complete-document rule (review P1, 2026-09-15):** extraction is driven
+   by the Phase-7 coverage ledger and is chunked — `chunk_plan` splits ALL
+   pages (no 40-page/4k-character caps anymore; `build_user_message` passes
+   page text in full). `extract_complete` merges chunks deterministically
+   (first occurrence wins) and records conflicts as contradictions with both
+   values/pages. Pages not accounted for by the ledger are reported as
+   `omitted_pages`, and the run can never claim `complete` while any page is
+   unaccounted for. Every chunk request/response plus `merge.md` and
+   `metadata.json` are archived under `ai-runs/<run-id>/chunks/…`. The
+   review dialog uses this path and shows omitted pages explicitly.
 1. **Versioned prompt:** `src/datasheet_studio/prompts/controller_extraction_v1.md`
    (`PROMPT_VERSION = controller_extraction_v1`) defines the strict JSON
    response shape, allowed-field rule, unit and page-citation requirements,
