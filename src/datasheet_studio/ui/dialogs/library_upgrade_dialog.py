@@ -340,7 +340,7 @@ class LibraryUpgradeDialog(QDialog):
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "تأیید نهایی", f"علامت‌گذاری ولت ناموفق بود:\n{exc}")
             return
-        settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        settings = QSettings()
         settings.setValue("knowledgeBasePath", self._report.target_root)
         settings.sync()
         self._accept_button.setEnabled(False)
@@ -368,7 +368,7 @@ class LibraryUpgradeDialog(QDialog):
             return
         from PySide6.QtCore import QSettings
 
-        QSettings(APP_ORGANIZATION, APP_NAME).remove("knowledgeBasePath")
+        QSettings().remove("knowledgeBasePath")
         self._report = None
         self._accept_button.setEnabled(False)
         self._rollback_button.setEnabled(False)

@@ -34,7 +34,7 @@ class DocumentTextCoverageTool:
             ExtractionCoverageDialog,
         )
 
-        settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        settings = QSettings()
         service = TextExtractionService(
             pdf_reader=context.pdf_reader,
             vault_path_getter=lambda: str(settings.value("knowledgeBasePath", "") or ""),

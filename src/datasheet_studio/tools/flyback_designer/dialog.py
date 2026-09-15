@@ -293,6 +293,9 @@ class FlybackDesignerDialog(QDialog):
         open_button.clicked.connect(self._open_project)
         save_button = QPushButton("ذخیره پروژه…")
         save_button.clicked.connect(self._save_project)
+        # Kept as attributes so UI-path tests click the real buttons.
+        self._open_project_button = open_button
+        self._save_project_button = save_button
         reset_button = QPushButton("بازنشانی نمونه")
         reset_button.clicked.connect(self._reset_project)
         calculate_button = QPushButton("محاسبه")
@@ -324,7 +327,7 @@ class FlybackDesignerDialog(QDialog):
             from datasheet_studio.core.constants import APP_NAME, APP_ORGANIZATION
 
             vault_path = str(
-                QSettings(APP_ORGANIZATION, APP_NAME).value("knowledgeBasePath", "") or ""
+                QSettings().value("knowledgeBasePath", "") or ""
             )
         except Exception:
             vault_path = ""

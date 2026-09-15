@@ -473,3 +473,27 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
   anything Phase 13+.
 - Commit: this commit
 - Handoff: see the corrected HANDOFF below; Phase 12 stays at `REVIEW`.
+
+## 2026-09-15 — Review round 2 — real-button tests + settings separation
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: corrective implementation and test per owner instruction (findings
+  relayed from the owner's independent review round; reviewer artifacts
+  cleaned from .pytest_cache)
+- Scope: no Phase-13 work. Register round-2 items, fix with test-first
+  discipline where behavior changed.
+- Changed: conftest `isolated_qsettings` (INI under pytest tmp; app org/app
+  names on QApplication); migration of all `QSettings(org, app)` call sites
+  (8 src files + 3 test files) to `QSettings()`; `TextExtractionService
+  .last_page_texts`; AI dialog fixes (QWidget import, removal of the
+  clobbering `archive_run` call, provider/model forwarded to the chunk
+  archive, in-memory texts fallback); Flyback dialog keeps real open/save
+  button references; `tests/unit/test_review_round2.py` (4 tests: settings
+  isolation, AI real-button flow to archive, retry path, Flyback
+  save→open buttons); REVIEW_FINDINGS §Round 2.
+- Verification: full regression **349 passed in 70.14 s** (ZCode's own
+  run); no leftover review temp folders under .pytest_cache.
+- Not verified: anything Phase 13+ (not started, per owner instruction).
+- Commit: this commit
+- Handoff: see HANDOFF — Phase 12 remains at REVIEW; Phase 13 blocked
+  pending owner acceptance.

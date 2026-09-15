@@ -94,6 +94,7 @@ class TextExtractionService:
         self._reader = pdf_reader or PdfReader()
         self._ocr = ocr_adapter or NoOcrAdapter()
         self._vault_path_getter = vault_path_getter or (lambda: "")
+        self.last_page_texts: dict[int, str] = {}
 
     # -- cache ---------------------------------------------------------------
 
@@ -237,6 +238,8 @@ class TextExtractionService:
         coverage = DocumentCoverage(
             source_hash=digest, page_count=page_count, pages=tuple(statuses)
         )
+        # In-memory copy so consumers work even without a vault cache.
+        self.last_page_texts = dict(page_texts)
         self._write_cache(digest, coverage, page_texts)
         self._update_index(digest, coverage, page_texts)
         return coverage

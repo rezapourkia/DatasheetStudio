@@ -210,7 +210,7 @@ class MainWindow(QMainWindow):
         self._current_page = 1
         self._zoom = 1.0
         self._selected_pages: dict[int, SelectedPage] = {}  # page_number -> SelectedPage
-        self._settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        self._settings = QSettings()
         
         # Initialize AI service
         self._ai_service = AIService()

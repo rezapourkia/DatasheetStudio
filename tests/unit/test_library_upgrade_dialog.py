@@ -43,7 +43,7 @@ def v1_library(tmp_path: Path) -> Path:
 @pytest.fixture()
 def cleanup_settings():
     yield
-    QSettings(APP_ORGANIZATION, APP_NAME).remove("knowledgeBasePath")
+    QSettings().remove("knowledgeBasePath")
 
 
 def test_preview_updates_summary_and_enables_start(qapp_instance, v1_library):
@@ -85,7 +85,7 @@ def test_final_acceptance_writes_settings_and_marks_vault(
 
     dialog._accept_upgrade()
 
-    settings = QSettings(APP_ORGANIZATION, APP_NAME)
+    settings = QSettings()
     assert settings.value("knowledgeBasePath", "") == str(target)
     _, accepted = KnowledgeVault(target).read_identity()
     assert accepted is True
@@ -107,5 +107,5 @@ def test_rollback_removes_vault_and_clears_settings(
     dialog._rollback_upgrade()
 
     assert not target.exists()
-    assert QSettings(APP_ORGANIZATION, APP_NAME).value("knowledgeBasePath", "") == ""
+    assert QSettings().value("knowledgeBasePath", "") == ""
     assert dialog._start_button.isEnabled()

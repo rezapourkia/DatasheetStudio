@@ -62,7 +62,7 @@ class OnlineSourcesDialog(QDialog):
         if settings is None:
             from PySide6.QtCore import QSettings
 
-            settings = QSettings(APP_ORGANIZATION, APP_NAME)
+            settings = QSettings()
         self._settings = settings
         self._connection_tester = connection_tester
         self._worker: _TestWorker | None = None

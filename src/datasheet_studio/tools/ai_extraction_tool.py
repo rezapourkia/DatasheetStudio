@@ -31,7 +31,7 @@ class AiProfileExtractionTool:
             AiExtractionReviewDialog,
         )
 
-        settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        settings = QSettings()
 
         def chat(prompt: str) -> str:
             if context.ai_service is None:

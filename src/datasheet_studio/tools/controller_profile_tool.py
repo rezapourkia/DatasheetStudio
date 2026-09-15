@@ -37,7 +37,7 @@ class ControllerProfileTool:
                 manufacturer, part_number = match.group(1), match.group(2)
             else:
                 part_number = stem
-        settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        settings = QSettings()
         dialog = ControllerProfileDialog(
             context.parent,
             part_number=part_number,

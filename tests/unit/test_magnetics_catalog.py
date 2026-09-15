@@ -134,7 +134,7 @@ def test_flyback_dialog_lists_catalog_core(qapp_instance, tmp_path, monkeypatch)
 
     vault = KnowledgeVault.create(tmp_path / "vault2", "Combo Vault")
     vault.write_catalog_pack(pack())
-    settings = QSettings(APP_ORGANIZATION, APP_NAME)
+    settings = QSettings()
     settings.setValue("knowledgeBasePath", str(vault.root))
     try:
         dialog = FlybackDesignerDialog()

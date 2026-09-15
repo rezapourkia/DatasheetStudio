@@ -22,14 +22,11 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from datasheet_studio.models.controller_profile import FIELD_SPECS
-from datasheet_studio.services.controller_extraction import (
-    ExtractionRunError,
-    archive_run,
-    run_extraction,
-)
+from datasheet_studio.services.controller_extraction import ExtractionRunError
 from datasheet_studio.services.knowledge_hash import sha256_file
 from datasheet_studio.services.text_extraction import TextExtractionService
 
@@ -39,7 +36,8 @@ class _AiWorker(QThread):
     failed = Signal(str)
 
     def __init__(self, chat, part_number, page_texts, complete_pages,
-                 page_count, source_hash, archive_root, cancel_event, parent=None):
+                 page_count, source_hash, archive_root, cancel_event,
+                 provider="", model="", parent=None):
         super().__init__(parent)
         self._chat = chat
         self._part = part_number
@@ -49,6 +47,8 @@ class _AiWorker(QThread):
         self._hash = source_hash
         self._archive = archive_root
         self._cancel = cancel_event
+        self._provider = provider
+        self._model = model
 
     def run(self):
         from datasheet_studio.services.controller_extraction import extract_complete
@@ -62,6 +62,8 @@ class _AiWorker(QThread):
                 page_count=self._count,
                 source_hash=self._hash,
                 archive_root=self._archive,
+                provider=self._provider,
+                model=self._model,
                 should_cancel=self._cancel.is_set,
             )
         except ExtractionRunError as exc:
@@ -171,7 +173,9 @@ class AiExtractionReviewDialog(QDialog):
                 vault_path_getter=self._vault_path_getter
             )
             coverage = service.extract(self._pdf_path)
-            texts = service._cached_page_texts(coverage.source_hash)
+            texts = service._cached_page_texts(coverage.source_hash) or getattr(
+                service, "last_page_texts", {}
+            )
             return coverage, texts
 
         class _Prep(QThread):
@@ -211,6 +215,8 @@ class AiExtractionReviewDialog(QDialog):
                 coverage.source_hash,
                 archive_root,
                 self._cancel_event,
+                self._provider,
+                self._model,
                 self,
             )
             self._worker.done.connect(self._on_done)
@@ -314,16 +320,6 @@ class AiExtractionReviewDialog(QDialog):
             except Exception as exc:  # noqa: BLE001
                 QMessageBox.warning(self, "ذخیره پروفایل", str(exc))
                 return
-        archive_run(
-            self._vault_path_getter,
-            run_id=self._result.run_id,
-            request_text=self._request_text,
-            response_text=self._response_text,
-            result=self._result,
-            source_hash=self._source_hash,
-            provider=self._provider,
-            model=self._model,
-        )
         where = f"در ولت: {saved}" if saved else "پروفایل AI بدون ولت ذخیره نشد (ولتی فعال نیست)."
         self._status.setText(
             f"✅ {len(accepted)} فیلد پذیرفته و با وضعیت «استخراج‌شده» ذخیره شد {where}"

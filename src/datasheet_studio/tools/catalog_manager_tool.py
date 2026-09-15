@@ -25,7 +25,7 @@ class CatalogManagerTool:
             CatalogManagerDialog,
         )
 
-        settings = QSettings(APP_ORGANIZATION, APP_NAME)
+        settings = QSettings()
         CatalogManagerDialog(
             context.parent,
             vault_path_getter=lambda: str(

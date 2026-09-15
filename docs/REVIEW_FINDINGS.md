@@ -153,3 +153,30 @@ Full regression after all corrections: **345 passed in 73.23 s**.
 6. Surface the missing Phase-11 rail/scenario editors before or as the first
    explicitly documented UI slice that depends on them.
 7. Only then request owner acceptance to begin Phase 13.
+
+
+## Round 2 — Owner/Codex follow-up (2026-09-15)
+
+Findings reported: (1) tests must cover the REAL button paths — response
+display, acceptance, archive, and project open/save; (2) test settings were
+still not separated from the user's real settings ("این ایراد قبلی هنوز
+باقی است"); (3) the reviewer's independent run (56 tests, separated temp
+settings) vs ZCode's 345 — attribution of verification numbers must stay
+honest; (4) two blocked temp folders left under `.pytest_cache`.
+
+### Correction status (ZCode, committed separately)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Real-button UI paths | **Fixed & tested** — AI dialog flow clicks the actual consent checkbox, run button, and acceptance button through the worker threads: response rows rendered, profile written to the vault, run archived with per-chunk artifacts + provider/model metadata; provider-failure path shows the real retry button. Flyback project save→open runs through the actual save/open buttons (file written, spins restored) | `tests/unit/test_review_round2.py`; commit in this pass |
+| Settings separation | **Fixed & tested** — every `QSettings(APP_ORGANIZATION, APP_NAME)` call site (8 source files + tests) migrated to `QSettings()`; the session conftest fixture sets INI default format under the pytest temp dir so the suite never touches the user's registry (asserted: format==Ini, path under temp, no HKEY) | conftest `isolated_qsettings`; `test_qsettings_stay_in_temp_ini` |
+| Blocked temp folders | **Cleaned** — `.pytest_cache/review-current`, `review-probes-*`, `review-settings-*` deleted; suite leaves only the standard cache | working tree |
+| Verification attribution | Recorded here: **349 passed in 70.14 s is ZCode's own run**; Codex's independent 56-test run used its own separated temp settings and predates these fixes | this section |
+
+Fixes found by the new tests themselves (red→green during this pass): the
+AI dialog crashed mid-render (missing `QWidget` import) leaving acceptance
+disabled; `_accept` still called the old single-run `archive_run` and
+clobbered the chunk-archive `metadata.json` (removed — chunk archiving is
+authoritative); the worker did not forward provider/model into the archive;
+page texts were lost without a vault cache (service now keeps
+`last_page_texts` in memory).

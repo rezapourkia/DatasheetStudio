@@ -45,8 +45,18 @@ Status.
 5. **P2 — Phase-11 terminology**: docs/contract now say "64-output-capable"
    and list the missing rail/scenario editors as an OPEN item.
 
-Full regression after all corrections: **345 passed in 73.23 s**; compile
-check passed.
+Full regression after round-1 corrections: 345 passed (ZCode's own run).
+Round-2 corrections (owner follow-up) then landed: real-button UI-path
+tests (AI consent→run→display→accept→archive incl. provider/model in the
+chunk archive and the real retry button; Flyback project save→open via the
+actual buttons), full settings separation from the user's store (all
+`QSettings(org, app)` migrated to `QSettings()` + session INI fixture under
+pytest tmp, asserted not-registry), and cleanup of the blocked
+`.pytest_cache/review-*` folders. Post-round-2 regression (ZCode's own
+run): **349 passed in 70.14 s**. Bugs the new tests exposed and fixed:
+missing QWidget import crashed the AI dialog mid-render; `_accept` clobbered
+the chunk archive via the old `archive_run`; provider/model were not
+archived; page texts were lost without a vault cache.
 
 **NOT done (remaining — do not claim otherwise):**
 

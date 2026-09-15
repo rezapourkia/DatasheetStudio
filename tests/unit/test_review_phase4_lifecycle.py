@@ -32,7 +32,7 @@ def make_v1(tmp_path: Path) -> Path:
 @pytest.fixture()
 def cleanup_settings():
     yield
-    QSettings(APP_ORGANIZATION, APP_NAME).remove("knowledgeBasePath")
+    QSettings().remove("knowledgeBasePath")
 
 
 def test_accept_failure_does_not_publish_vault_setting(
@@ -63,7 +63,7 @@ def test_accept_failure_does_not_publish_vault_setting(
     dialog._accept_upgrade()
 
     assert critical_calls  # the failure was surfaced, not swallowed
-    settings = QSettings(APP_ORGANIZATION, APP_NAME)
+    settings = QSettings()
     assert settings.value("knowledgeBasePath", "") == ""  # NOT published
     _, accepted = KnowledgeVault(target).read_identity()
     assert accepted is False
@@ -115,7 +115,7 @@ def test_successful_accept_marks_then_publishes(
 
     _, accepted = KnowledgeVault(target).read_identity()
     assert accepted is True
-    assert QSettings(APP_ORGANIZATION, APP_NAME).value(
+    assert QSettings().value(
         "knowledgeBasePath", ""
     ) == str(target)
     dialog.close()
