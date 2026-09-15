@@ -126,8 +126,8 @@ only location of a requirement, decision, test result, or unfinished action.
 
 | Phase | Name | Status | Reviewable result |
 |---:|---|---|---|
-| 0 | Product contract and staged plan | `REVIEW` | Product vision, architecture direction, and this execution plan pushed |
-| 1 | Stabilize and preserve current baseline | `PLANNED` | Existing native Flyback v1/tool registry changes tested and pushed separately |
+| 0 | Product contract and staged plan | `ACCEPTED` | Product vision, architecture direction, and this execution plan pushed |
+| 1 | Stabilize and preserve current baseline | `REVIEW` | Existing native Flyback v1/tool registry changes tested and pushed separately |
 | 2 | Knowledge-base domain and schema | `PLANNED` | Versioned records, hashes, provenance, revisions, and validation without UI migration |
 | 3 | Rebuildable SQLite/FTS index | `PLANNED` | Fast metadata/full-text index that can be deleted and rebuilt safely |
 | 4 | Safe Library v1 → v2 desktop upgrade | `PLANNED` | Preview, backup, import, rollback, and no-delete migration UI |
@@ -590,5 +590,8 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 0 is complete and awaiting owner review. Do not begin Phase 1 until the
-owner has reviewed the plan or explicitly requested continuation.
+Phase 1 is implemented, verified, and pushed; it is awaiting owner review.
+The recorded verification (2026-09-15, ZCode): compile check passed, full
+regression **143 passed in 61.99 s**, offscreen startup smoke test passed with
+two registered tools. Do not begin Phase 2 until the owner accepts Phase 1 or
+explicitly requests continuation.

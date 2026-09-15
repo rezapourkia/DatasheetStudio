@@ -1,7 +1,7 @@
 """Shared application constants for Datasheet Studio."""
 
 APP_NAME = "Datasheet Studio"
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 APP_ORGANIZATION = "DatasheetStudio"
 
 # Default main window dimensions in pixels.

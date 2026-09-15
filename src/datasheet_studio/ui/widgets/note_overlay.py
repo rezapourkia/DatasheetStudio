@@ -1,4 +1,4 @@
-﻿"""Note overlay widget for PDF annotations."""
+"""Note overlay widget for PDF annotations."""
 
 from PySide6.QtCore import Qt, Signal, QRectF
 from PySide6.QtGui import QPainter, QColor, QPen, QFont, QBrush

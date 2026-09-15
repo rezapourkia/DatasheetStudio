@@ -39,7 +39,7 @@ The following rules apply to every module:
 | 7 | Local Datasheet Library | In progress | Local datasheet bank, categories by manufacturer, search, summaries, and download folder |
 | 8 | AI Assistant | In progress | Provider config, secure key storage, chat/summary/report with RAG |
 | 9 | Online Component Search | Planned | Official-API adapters for SnapEDA, Mouser, DigiKey, etc. |
-| 10 | Tools Framework + Export | Future | Plugin registry, symbol/package extraction, DipTrace export |
+| 10 | Tools Framework + Export | Working | Registry, Symbol Creator/DipTrace export, native Flyback Designer |
 
 The order may be adjusted only when a documented architectural reason exists.
 
@@ -473,3 +473,42 @@ Remaining AI work:
 - Retrieval / RAG over selected pages as richer context.
 - Moving the AI HTTP transport into `infrastructure/ai` (see the known
   deviation documented in `docs/ARCHITECTURE.md`).
+
+---
+
+## 17. Product Realignment — 2026-09-15
+
+The owner clarified that the target is an integrated, daily-use
+datasheet-to-design workspace. `docs/PRODUCT_VISION.md` is the authoritative
+workflow. The following order supersedes the narrower “finish generic AI
+assistant first” priority above:
+
+1. **Knowledge Base v2 foundation:** content hashes, immutable source objects,
+   revisions, evidence records, SQLite/FTS index, Markdown sidecars, and a safe
+   in-app upgrade path from `library.json`.
+2. **Bottom Online Search:** compact main-window search, normalized provider
+   results, preview, safe download, duplicate detection, and library import.
+3. **Controller Profile Extraction:** complete-page coverage, OCR boundary,
+   versioned Markdown prompt, strict schema, page evidence, review workflow,
+   and current-datasheet handoff to Flyback Designer.
+4. **Flyback Domain v2:** remove the domain output-count cap; add isolation
+   groups, load scenarios, controller profiles, component tolerances, and
+   explicit feedback networks.
+5. **Magnetics Catalog:** sourced core/material/bobbin packs, per-field
+   provenance, loss curves, exact order codes, local cache, and update UI.
+6. **Feasibility and Candidate Engine:** physical winding/layer checks,
+   constraint explanations, deterministic nearby-core ranking, and tests.
+7. **Loss/Ripple/Thermal Expansion:** all rails, input capacitor, rectifiers,
+   switch/controller, transformer, clamp/snubber, temperature iteration, and
+   min/nominal/max scenario matrix.
+8. **Cross-Regulation and Feedback:** asymmetric cross-load cases and supported
+   primary-side, single/multiple optocoupler, series, parallel, and weighted
+   feedback models tied to the exact controller profile.
+9. **Contextual Tool Chat and Reports:** calculation-aware chat, proposed-input
+   diffs, citations, archived AI artifacts, and reproducible design reports.
+10. **Daily-use refinement:** Persian RTL interaction pass, keyboard workflow,
+    responsiveness with large libraries, packaging, backup/restore, and manual
+    desktop verification.
+
+Each phase requires its own Markdown contract and acceptance tests before code.
+Planned features must remain visibly labelled as planned until implemented.

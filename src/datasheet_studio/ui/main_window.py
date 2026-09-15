@@ -57,6 +57,7 @@ from datasheet_studio.services.library_service import LibraryService
 from datasheet_studio.ui.library_panel import LibraryPanel
 from datasheet_studio.ui.dialogs.add_to_library_dialog import AddToLibraryDialog
 from datasheet_studio.core.logging import get_log_text
+from datasheet_studio.tools import ToolContext, create_default_tool_registry
 
 
 class _AutoHeightTextBrowser(QTextBrowser):
@@ -214,6 +215,9 @@ class MainWindow(QMainWindow):
 
         # Local datasheet library
         self._library_service = LibraryService()
+
+        # Engineering tools are registered independently from menu rendering.
+        self._tool_registry = create_default_tool_registry()
 
         self.setWindowTitle(APP_NAME)
         self.resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
@@ -1424,24 +1428,27 @@ class MainWindow(QMainWindow):
             clipboard.setText(text)
             self.statusBar().showMessage("Log copied to clipboard", 2000)
 
-    def _open_symbol_creator(self) -> None:
-        """Open the Symbol Creator dialog for the current datasheet."""
-        from datasheet_studio.ui.symbol_creator import SymbolCreatorDialog
-
-        if self._pdf_info is None:
-            QMessageBox.information(
-                self, "Symbol Creator", "Open a datasheet first."
-            )
-            return
-        dialog = SymbolCreatorDialog(
-            self,
-            self._reader,
-            self._pdf_info.path,
-            self._pdf_info.title,
-            self._ai_service,
-            symbol_pages=sorted(self._selected_pages),
+    def _tool_context(self) -> ToolContext:
+        """Create a current state snapshot for a registered engineering tool."""
+        return ToolContext(
+            parent=self,
+            pdf_reader=self._reader,
+            pdf_info=self._pdf_info,
+            selected_pages=tuple(sorted(self._selected_pages)),
+            ai_service=self._ai_service,
         )
-        dialog.exec()
+
+    def _run_registered_tool(self, tool_id: str) -> None:
+        """Run one tool without allowing a failure to close the application."""
+        try:
+            self._tool_registry.get(tool_id).run(self._tool_context())
+        except Exception as exc:  # noqa: BLE001 - isolate optional tools
+            self._log.exception("Registered tool failed: %s", tool_id)
+            QMessageBox.critical(
+                self,
+                "Tool Error",
+                f"The tool could not be opened:\n{exc}",
+            )
 
     def _create_menu_bar(self) -> None:
         """Create the main menu bar."""
@@ -1489,13 +1496,21 @@ class MainWindow(QMainWindow):
         reset_action.setStatusTip("Reset the workspace layout (not yet implemented)")
 
         # Tools menu
-        tools_menu = menu_bar.addMenu("&Tools")
-        symbol_action = tools_menu.addAction("Symbol Creator...")
-        symbol_action.setStatusTip(
-            "Extract package pin tables from the datasheet and export them as "
-            "CSV or as a DipTrace schematic symbol (.elixml)"
-        )
-        symbol_action.triggered.connect(self._open_symbol_creator)
+        self._tools_menu = menu_bar.addMenu("&Tools")
+        tools_menu = self._tools_menu
+        # Keep Python references: PySide may otherwise delete submenu wrappers
+        # after this method returns even though their QAction remains visible.
+        self._tool_category_menus: dict[str, QMenu] = {}
+        for tool in self._tool_registry.list_tools():
+            category_menu = self._tool_category_menus.get(tool.category)
+            if category_menu is None:
+                category_menu = tools_menu.addMenu(tool.category)
+                self._tool_category_menus[tool.category] = category_menu
+            action = category_menu.addAction(tool.name)
+            action.setStatusTip(tool.description)
+            action.triggered.connect(
+                lambda _checked=False, tool_id=tool.id: self._run_registered_tool(tool_id)
+            )
 
         # Library menu
         library_menu = menu_bar.addMenu("&Library")

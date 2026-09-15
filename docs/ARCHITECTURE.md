@@ -1,5 +1,9 @@
 # Datasheet Studio — Architecture
 
+> Read `docs/PRODUCT_VISION.md` before changing product behavior. The vision,
+> engineering knowledge-base contract, and AI workflow are authoritative where
+> older “future feature” wording in this document is narrower.
+
 ## 1. Architecture Purpose
 
 This document defines the intended technical structure of Datasheet Studio.
@@ -361,6 +365,12 @@ This architecture is the approved direction for the project.
   styled with Markdown rendering, `.md` export, retry, and a live status
   indicator.
 - Debug Log (`core/logging.py` + Help -> Debug Log...).
+- Tools Framework (`tools/registry.py`): deterministic registry and dynamic
+  categorized Tools menu. Symbol Creator is registered instead of hard-coded.
+- Native Flyback Designer (`tools/flyback_designer/`): Persian RTL PySide6 UI,
+  pure Python DCM calculation engine, versioned JSON projects, and no HTML or
+  WebView dependency. Bundled core/component values remain illustrative and
+  unverified.
 
 ### 13.2 Known Architecture Deviation (AI HTTP)
 
@@ -373,6 +383,7 @@ into `infrastructure/ai` and keep only use-case logic in `services/ai_service.py
 
 ### 13.3 Next Steps
 
-Follow `docs/ROADMAP.md` and `docs/CURRENT_STATUS.md`. The AI module remains
-the active focus (tool calls for Anthropic/Gemini, secure API-key storage,
-RAG over selected pages).
+Follow `docs/PRODUCT_VISION.md`, `docs/ROADMAP.md`, and
+`docs/CURRENT_STATUS.md`. The active next phase is the Knowledge Base v2
+foundation defined in `docs/ROADMAP.md` section 17. Remaining generic AI work
+continues only where it supports that end-to-end workflow.

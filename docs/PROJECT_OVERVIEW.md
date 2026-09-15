@@ -1,5 +1,10 @@
 # Datasheet Studio — Project Overview
 
+> The authoritative end-to-end product workflow is now defined in
+> `docs/PRODUCT_VISION.md`. It records the owner's 2026-09-15 correction that
+> Datasheet Studio is a persistent datasheet-to-engineering workspace, not only
+> a PDF reader, and that Flyback Designer is not merely a stand-alone calculator.
+
 ## 1. Project Identity
 
 **Project name:** Datasheet Studio  

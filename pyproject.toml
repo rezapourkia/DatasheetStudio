@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datasheet-studio"
-version = "0.1.0"
+version = "0.2.0"
 description = "A specialized desktop application for reading, organizing, annotating, and analyzing electronic-component datasheets."
 readme = "docs/PROJECT_OVERVIEW.md"
 requires-python = ">=3.13"
@@ -17,6 +17,12 @@ dependencies = [
 dev = [
     "pytest>=8.0",
 ]
+build = [
+    "Nuitka==4.1.1",
+]
+
+[project.scripts]
+datasheet-studio = "datasheet_studio.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -24,3 +30,53 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.pyside6-project]
+files = [
+    "app.py",
+    "src/datasheet_studio/__init__.py",
+    "src/datasheet_studio/app.py",
+    "src/datasheet_studio/core/__init__.py",
+    "src/datasheet_studio/core/constants.py",
+    "src/datasheet_studio/core/logging.py",
+    "src/datasheet_studio/infrastructure/__init__.py",
+    "src/datasheet_studio/infrastructure/pdf/__init__.py",
+    "src/datasheet_studio/infrastructure/pdf/reader.py",
+    "src/datasheet_studio/infrastructure/storage/__init__.py",
+    "src/datasheet_studio/infrastructure/storage/library_store.py",
+    "src/datasheet_studio/models/__init__.py",
+    "src/datasheet_studio/models/library_item.py",
+    "src/datasheet_studio/models/page_annotation.py",
+    "src/datasheet_studio/models/pdf_document.py",
+    "src/datasheet_studio/models/selected_page.py",
+    "src/datasheet_studio/services/__init__.py",
+    "src/datasheet_studio/services/ai_service.py",
+    "src/datasheet_studio/services/diptrace_export.py",
+    "src/datasheet_studio/services/library_service.py",
+    "src/datasheet_studio/services/manufacturer_detector.py",
+    "src/datasheet_studio/services/selection_storage.py",
+    "src/datasheet_studio/tools/__init__.py",
+    "src/datasheet_studio/tools/registry.py",
+    "src/datasheet_studio/tools/symbol_creator_tool.py",
+    "src/datasheet_studio/tools/flyback_designer/__init__.py",
+    "src/datasheet_studio/tools/flyback_designer/defaults.py",
+    "src/datasheet_studio/tools/flyback_designer/dialog.py",
+    "src/datasheet_studio/tools/flyback_designer/engine.py",
+    "src/datasheet_studio/tools/flyback_designer/persistence.py",
+    "src/datasheet_studio/tools/flyback_designer/tool.py",
+    "src/datasheet_studio/ui/__init__.py",
+    "src/datasheet_studio/ui/dialogs/__init__.py",
+    "src/datasheet_studio/ui/dialogs/add_to_library_dialog.py",
+    "src/datasheet_studio/ui/dialogs/datasheet_browser.py",
+    "src/datasheet_studio/ui/library_panel.py",
+    "src/datasheet_studio/ui/main_window.py",
+    "src/datasheet_studio/ui/markdown_render.py",
+    "src/datasheet_studio/ui/symbol_creator.py",
+    "src/datasheet_studio/ui/widgets/__init__.py",
+    "src/datasheet_studio/ui/widgets/annotation_label.py",
+    "src/datasheet_studio/ui/widgets/annotation_overlay.py",
+    "src/datasheet_studio/ui/widgets/note_editor.py",
+    "src/datasheet_studio/ui/widgets/note_overlay.py",
+    "src/datasheet_studio/ui/widgets/pdf_scroll_area.py",
+    "src/datasheet_studio/ui/widgets/selected_page_item.py",
+]

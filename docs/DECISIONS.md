@@ -1,6 +1,6 @@
 # Datasheet Studio — Architecture and Technical Decisions
 
-**Last updated:** 2026-08-12
+**Last updated:** 2026-09-15
 **Status:** Active
 **Purpose:** Record important technical, architectural, and workflow decisions so future development remains consistent.
 
@@ -55,6 +55,10 @@ New important decisions must be added here rather than being kept only in chat m
 | ADR-014 | Use a Plugin Registry for Future Engineering Tools | Accepted | 2026-08-13 |
 | ADR-015 | Use Short Layered Directory Names (`ui`, `services`, `models`, `infrastructure`, `core`, `tools`) | Accepted | 2026-08-13 |
 | ADR-016 | Real AI HTTP Integration with Tool/Function Calls | Accepted | 2026-08-14 |
+| ADR-017 | Implement Flyback Designer as a Native Documented Tool | Accepted | 2026-09-14 |
+| ADR-018 | Treat Datasheet Studio as a Datasheet-to-Design Workspace | Accepted | 2026-09-15 |
+| ADR-019 | Use a Portable File Vault with a Rebuildable SQLite Index | Accepted | 2026-09-15 |
+| ADR-020 | Keep AI Evidenced and Advisory Around Deterministic Engines | Accepted | 2026-09-15 |
 
 ---
 
@@ -641,6 +645,129 @@ add it".
   at this stage.
 
 ---
+
+## ADR-017 — Implement Flyback Designer as a Native Documented Tool
+
+**Status:** Accepted
+**Date:** 2026-09-14
+
+### Context
+
+The earlier flyback calculator was a direct-open browser application. The
+owner requested that flyback design become part of Datasheet Studio as real
+desktop software and explicitly rejected importing or wrapping the HTML user
+interface. The project also requires Markdown-first feature development and
+already has an accepted registry architecture for engineering tools.
+
+### Decision
+
+Implement Flyback Designer as a registered, native PySide6 tool. Keep all
+engineering equations in a pure Python engine inside the tool package, keep the
+tool UI Persian and right-to-left, and store designs in versioned JSON.
+
+The former browser project is a reference only for reviewed equations,
+numerical fixtures, provenance, and limitations. Datasheet Studio must not load
+its HTML, CSS, JavaScript, local storage, or a WebView.
+
+All bundled core and generic component profiles remain illustrative and
+unverified. Automated tests establish equation consistency and regression
+coverage, not production or laboratory validation.
+
+### Consequences
+
+- Flyback Designer follows normal desktop interaction and packaging.
+- The calculation engine is testable without Qt or a display server.
+- Existing numerical reference values can be compared across implementations.
+- Future CCM/QR solvers can be added behind a mode-specific engine boundary.
+- The native UI must be maintained separately from the former browser project.
+- Production use still requires manufacturer data, simulation, prototyping,
+  thermal/EMI work, and safety verification.
+
+### Alternatives Considered
+
+- Embedding the existing HTML in Qt WebEngine: rejected by the owner and would
+  preserve the unwanted browser interface.
+- Continuing two independent products: rejected because Datasheet Studio is
+  now the intended engineering workspace.
+
+---
+
+## ADR-018 — Treat Datasheet Studio as a Datasheet-to-Design Workspace
+
+**Status:** Accepted
+
+**Date:** 2026-09-15
+
+### Context
+
+The earlier documents framed the application mainly as a PDF workspace and the
+native Flyback Designer as an isolated preliminary calculator. The owner needs
+a continuous workflow from an open controller datasheet through AI-assisted
+extraction, reviewed reusable data, real magnetic selection, engineering
+analysis, and a saved reproducible design.
+
+### Decision
+
+Adopt `docs/PRODUCT_VISION.md` as the authoritative product workflow. Tools
+receive a documented current-datasheet context and use shared library records;
+they do not create private, disconnected copies of component knowledge.
+
+### Consequences
+
+- Current PDF, library, AI, and tool modules need explicit integration contracts.
+- Flyback Designer v1 remains useful but is not the target product.
+- Product acceptance is measured by end-to-end workflows, not feature presence.
+
+## ADR-019 — Use a Portable File Vault with a Rebuildable SQLite Index
+
+**Status:** Accepted
+
+**Date:** 2026-09-15
+
+### Context
+
+A single `library.json` manifest and manufacturer folders work for a small PDF
+collection but do not provide robust full-text search, revision/evidence links,
+deduplication, or engineering catalogue queries at daily-use scale.
+
+### Decision
+
+Evolve the library into the portable layout in
+`docs/modules/ENGINEERING_KNOWLEDGE_BASE.md`: immutable content-addressed source
+files, human-readable Markdown records, typed JSON profiles, and a rebuildable
+SQLite/FTS index. Normal users receive an in-app, recoverable upgrade flow.
+
+### Consequences
+
+- SQLite improves query and transaction behavior without becoming the only copy
+  of user knowledge.
+- Source hashes provide duplicate detection and stable evidence references.
+- More schema/versioning and migration tests are required.
+
+## ADR-020 — Keep AI Evidenced and Advisory Around Deterministic Engines
+
+**Status:** Accepted
+
+**Date:** 2026-09-15
+
+### Context
+
+AI is valuable for reading long controller/core documents and interacting with
+the user, but undocumented prompts and model-generated arithmetic would be
+difficult to reproduce, audit, or maintain across providers and developers.
+
+### Decision
+
+Use versioned Markdown prompts and strict response schemas. AI extracts facts
+with page evidence, explains results, and proposes design changes. Pure,
+tested engines own calculations and constraints. User acceptance is required
+before AI proposals change design inputs or review states.
+
+### Consequences
+
+- Designs remain calculable offline and independent of chat history.
+- AI runs become auditable project artifacts.
+- Complete extraction requires explicit page coverage and failure reporting.
 
 ## 3. Pending Decisions
 

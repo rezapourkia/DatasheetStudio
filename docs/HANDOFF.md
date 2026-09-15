@@ -2,44 +2,46 @@
 
 **Updated:** 2026-09-15
 
-**Contributor:** OpenAI Codex
+**Contributor:** ZCode (Z.ai, GLM)
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 0 — `REVIEW`
+**Active phase:** Phase 1 — `REVIEW`
 
 ## Completed Result
 
-The corrected datasheet-to-design product vision, knowledge-base direction,
-AI engineering protocol, online-search contract, staged development plan, and
-multi-AI attribution protocol are documented. No application behavior was
-implemented in Phase 0.
+The pre-existing uncommitted baseline (native Tool Registry, Flyback Designer
+v1, packaging config, documentation, and tests) was inspected, read in full,
+re-verified in the current checkout, and committed/pushed unchanged except for
+documentation updates recording this pass.
+
+Recorded verification (actual runs, not inherited claims):
+
+- `python -m compileall -q src tests` — passed
+- full `pytest tests` — **143 passed in 61.99 s**
+- offscreen startup smoke test — exited cleanly, 2 registered tools
+  (`symbol-creator`, `flyback-designer`)
 
 ## Working-Tree Warning
 
-The workspace already contains uncommitted native Tool Registry/Flyback v1,
-packaging, documentation, and UI changes that predate the Phase 0 commit. They
-were deliberately excluded from Phase 0 and must not be discarded, reset,
-reformatted, or silently mixed into unrelated work. Phase 1 exists specifically
-to inspect, test, classify, document, and preserve that baseline safely.
+After the Phase 1 commit the working tree is expected to be clean except for
+ignored local artifacts (`build/`, `dist/`, `dist-native/`,
+`nuitka-crash-report.xml`, test PDFs, `__pycache__`, `.venv`). These must
+never be committed.
 
-Known untracked generated artifact `nuitka-crash-report.xml` must not be
-committed. Other untracked files must be classified from Git status rather than
-assumed disposable.
+## Current Permitted Action
 
-## Next Permitted Action
+None automatically. Phase 1 sits at its review gate. The next contributor
+waits for owner acceptance of Phase 1 or explicit continuation, then performs
+Phase 2 (Knowledge-base domain and schema) per `docs/DEVELOPMENT_PLAN.md`.
 
-After owner acceptance, start Phase 1 only:
+Do not start Phase 2 work before that acceptance.
 
-1. change Phase 0 to `ACCEPTED` and Phase 1 to `IN PROGRESS` in the plan;
-2. inspect every existing uncommitted file and its diff;
-3. read the Tool Registry and Flyback v1 module contracts and source completely;
-4. run the specified focused and full regression checks;
-5. separate source/tests/docs from generated or local artifacts;
-6. update status, work log, and this handoff;
-7. commit and push the verified baseline, then stop at the Phase 1 review gate.
+## Not Verified in Phase 1
 
-Do not start Knowledge Base v2 implementation during Phase 1.
+- The packaged Nuitka executable was not built or launched.
+- Visual desktop (screenshot-level) verification was not performed; the
+  offscreen smoke test is the only launch evidence.
 
 ## Required Reading for the Next Contributor
 
@@ -55,6 +57,6 @@ Do not start Knowledge Base v2 implementation during Phase 1.
 
 ## Verification Rule
 
-The next contributor must not claim the existing Flyback v1 code or full test
-suite is verified merely because an earlier document says so. It must run the
-tests in the current checkout and record the actual result.
+The next contributor must not claim the Flyback v1 code or full test suite is
+verified merely because this document says so. It must run the tests in the
+current checkout and record the actual result.

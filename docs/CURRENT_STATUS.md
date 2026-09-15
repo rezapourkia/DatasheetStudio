@@ -1,9 +1,13 @@
 # Datasheet Studio — Current Project Status
 
-**Last updated:** 2026-08-15
-**Project status:** Application Shell + PDF viewer + selected pages + notes working; real AI integration with tool/function calls in progress; bugs fixed (AI chat Send button, Selected Pages Save, AI reply not visible, zoomed-page panning); save dialog opens in datasheet folder + hardened (no silent failures, "Open Folder" button); Compress button saves compressed PDF; Tools → Symbol Creator added (CSV + DipTrace `.elixml` symbol export) with required pin-table review before export; pin extraction generalised to non-ST datasheets (TOC-less TI/Maxim style + helpful hints); DeepSeek-style chat UI + AI pinout-extraction tool added
+**Last updated:** 2026-09-15
+**Project status:** Desktop PDF/library/AI workspace and native Flyback Designer v1 are working; the broader datasheet-to-design product direction is now specified but not yet implemented
 **Current branch:** `main`
 **Primary development environment:** Windows + VS Code + Python virtual environment
+
+> The authoritative newest implementation record is section 15. Earlier
+> module-baseline paragraphs are retained as project history and may describe
+> the state before the later feature passes recorded in sections 11, 13, and 15.
 
 ---
 
@@ -723,7 +727,77 @@ Before beginning work in a future session:
 
 ---
 
-## 13. Update Rule
+## 13. Native Tools and Flyback Designer — 2026-09-14
+
+### Environment Recreated After Clone
+
+- Installed Python 3.13.3 x64 for the current Windows user.
+- Recreated the ignored `.venv` in the repository.
+- Installed the exact runtime dependencies from `pyproject.toml`:
+  PySide6 6.11.1 and PyMuPDF 1.28.2.
+- Installed pytest 9.1.1 through the `dev` extra.
+- Added a `build` extra for the Qt-recommended Nuitka deploy path and a
+  maintained `pysidedeploy.spec` file.
+
+### Documentation-First Contracts
+
+- Added `docs/modules/TOOLS_FRAMEWORK.md` before implementing the registry.
+- Added `docs/modules/FLYBACK_DESIGNER.md` before implementing the tool.
+- Added ADR-017 documenting the explicit native/no-HTML decision.
+- Added a root `README.md` and `docs/WINDOWS_BUILD.md`.
+
+### Tools Framework
+
+- Added `Tool`, `ToolContext`, and `ToolRegistry` under
+  `src/datasheet_studio/tools/registry.py`.
+- The main window now renders categorized tool actions from the registry.
+- Duplicate IDs and incomplete metadata are rejected.
+- Symbol Creator is now a registered CAD tool rather than a hard-coded action.
+- Tool failures are isolated and reported without terminating Datasheet Studio.
+
+### Native Flyback Designer v1
+
+- Added a pure Python DCM engine with explicit-unit dataclasses.
+- Added a native PySide6 dialog; no HTML, JavaScript, Qt WebEngine, or runtime
+  dependency on the former FLYBACK repository exists.
+- The dialog is Persian and right-to-left with editable source/switch, core,
+  winding, clamp, feedback, and up-to-eight-output inputs.
+- Results cover turns, inductance, currents, wire suggestion, fill, gap, AL,
+  reflected voltage, switch stress, RCD estimate, losses, ripple, and TL431 DC
+  values.
+- Engineering errors and warnings remain visible. All bundled seed data is
+  explicitly illustrative and unverified.
+- Versioned UTF-8 JSON save/open is implemented with validation before form
+  replacement.
+
+### Verification
+
+- Python compile check: passed.
+- Flyback engine/registry tests: 25 passed.
+- Native Flyback dialog/menu integration checks: passed.
+- Full project regression suite: **138 passed in 62.43 seconds**.
+  Re-verified in the current checkout on 2026-09-15 (ZCode) during the Phase 1
+  baseline pass: compile check passed and full suite **143 passed in 61.99 s**
+  (the count grew with test files present in the working tree), plus an
+  offscreen startup smoke test with two registered tools.
+- Timed Qt event-loop startup smoke test: passed with exit code 0 and two
+  registered tools.
+- Automated Windows screenshot inspection was attempted but the Computer Use
+  approval/window session failed; visual desktop interaction is therefore not
+  claimed as verified in this record.
+
+### Next Work
+
+1. Build and launch the official `pyside6-deploy`/Nuitka distribution.
+2. Perform manual visual verification on the packaged executable.
+3. Add manufacturer-backed editable core/component libraries with per-field
+   provenance; do not promote samples to verified data.
+4. Add physical winding-layer planning and report export in a later documented
+   phase.
+
+---
+
+## 14. Update Rule
 
 This document must be updated whenever:
 
@@ -736,3 +810,40 @@ This document must be updated whenever:
 - A significant verification result is obtained
 
 The purpose of this file is to provide an accurate handoff point so work can continue safely in a new chat session or with an AI assistant inside VS Code.
+
+---
+
+## 15. Owner Workflow Realignment — 2026-09-15
+
+The owner clarified the intended daily workflow. The authoritative requirements
+are now in `docs/PRODUCT_VISION.md`, with supporting contracts in:
+
+- `docs/modules/ENGINEERING_KNOWLEDGE_BASE.md`
+- `docs/modules/AI_ENGINEERING_WORKFLOW.md`
+- `docs/modules/ONLINE_DATASHEET_SEARCH.md`
+- `docs/modules/FLYBACK_DESIGNER.md`
+
+### Implemented Today
+
+- PDF viewer, selected pages, notes, initial local library, AI chat, tool
+  registry, and native Persian RTL Flyback Designer v1.
+- A separate online-search browser dialog with manual download-to-library flow.
+- A portable v1 library based on `library.json` and manufacturer folders.
+
+### Not Yet Implemented
+
+- Bottom main-window search strip and normalized official-source adapters.
+- Content-addressed source vault, SQLite/FTS index, revision/evidence graph, and
+  safe v1-to-v2 in-app upgrade.
+- Complete-datasheet controller-profile extraction with OCR coverage, strict
+  schema, page evidence, and review/lock workflow.
+- Automatic handoff of the current datasheet/profile into Flyback Designer.
+- Manufacturer-backed core/material/bobbin packs and update UI.
+- Arbitrary output count in the domain model, isolation groups, scenario matrix,
+  complete per-rail capacitor/rectifier calculations, cross-regulation, and
+  explicit optocoupler feedback topology analysis.
+- Calculation-aware Flyback chat with archived Markdown prompt/response artifacts.
+
+No current illustrative core/component record has been promoted to verified.
+The next implementation phase is Knowledge Base v2, as ordered in
+`docs/ROADMAP.md` section 17.
