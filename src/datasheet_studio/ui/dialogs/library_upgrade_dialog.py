@@ -173,7 +173,10 @@ class LibraryUpgradeDialog(QDialog):
         self._rollback_button.setEnabled(False)
         self._rollback_button.clicked.connect(self._rollback_upgrade)
         close_button = QPushButton("بستن")
-        close_button.clicked.connect(self.accept)
+        # Round-3 fix: route Close through reject() so the running-worker
+        # guard applies (cancel first, close after the worker finishes).
+        close_button.clicked.connect(self.reject)
+        self._close_button = close_button
         for button in (
             self._preview_button,
             self._start_button,
