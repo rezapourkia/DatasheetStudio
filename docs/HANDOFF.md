@@ -6,67 +6,67 @@
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 3 — `REVIEW`
+**Active phase:** Phase 4 — `REVIEW`
 
 ## Completed Result
 
-Phases 1–2 were accepted by the owner. Phase 3 (rebuildable SQLite/FTS index)
-is implemented, tested, and pushed.
+Phases 1–3 were accepted by the owner. Phase 4 (safe Library v1 → v2 desktop
+upgrade) is implemented, tested, and pushed. **First visible UI change of the
+v2 effort:**
 
-Delivered per `docs/modules/KNOWLEDGE_INDEX.md`:
+- **Library → Upgrade Library to v2 (Knowledge Base)...** opens the Persian
+  RTL upgrade dialog for the active v1 library.
+- Flow: preview → cancellable worker-thread run with progress → itemized
+  report (imported/duplicate/ambiguous/skipped/failed with reasons) →
+  explicit **final acceptance** (marks `library.toml accepted=true`, stores
+  `knowledgeBasePath` in QSettings) or **rollback** (deletes the v2 vault).
+- New modules: `infrastructure/storage/knowledge_vault.py` (v2 layout, TOML
+  identity, content-addressed objects, records + envelopes, migration
+  reports), `services/library_migration.py` (orchestration, duplicate/
+  ambiguous/skipped/failed semantics, cancel + cleanup), and
+  `ui/dialogs/library_upgrade_dialog.py`.
+- Safety rules honored and tested: v1 never modified (byte-identical after
+  migration), manifest backed up into the vault, partial vault removed on
+  cancel/error, rollback deletes only v2.
 
-- `src/datasheet_studio/infrastructure/storage/knowledge_index.py` —
-  `KnowledgeIndex`: stdlib SQLite/FTS5 adapter over the Phase 2 domain
-  records. One rowid-aligned FTS table per record kind; incremental
-  upsert/remove; explicit transactions with rollback; atomic rebuild (temp
-  file + `os.replace`); `recover()` for corrupt index files.
-- Search: prefix-AND free terms (Persian supported), filters `maker:`,
-  `type:`, `core:`, `material:`, `verified:`; hits grouped by kind with
-  page/field context and highlighted snippets.
-- SQLite is an index only (ADR-019): a test deletes the database file,
-  rebuilds from records, and asserts identical results.
-- No UI in this phase; the synchronous adapter must be called from a worker
-  thread by the Phase 4/5 UI (documented in the contract §2).
-
-Recorded verification: full regression **206 passed in 66.20 s** (19 new
-tests). Performance fixture (1,500 documents / 6,000 fields / 3,000 pages):
-build ≈ 0.2 s, queries ≤ 4 ms (development machine).
+Recorded verification: full regression **227 passed in 64.98 s** (21 new
+tests), compile check and offscreen startup smoke passed.
 
 ## Working-Tree Warning
 
 The working tree is expected to be clean except ignored local artifacts
 (`build/`, `dist/`, `dist-native/`, `nuitka-crash-report.xml`, test PDFs,
-`__pycache__`, `.venv`, `*.rebuild-tmp`). Never commit those.
+`__pycache__`, `.venv`). Never commit those.
 
 ## Current Permitted Action
 
-None automatically — Phase 3 sits at its owner review gate. The owner should
-review **search syntax and result ordering** with representative part/core
-queries (grammar and verified tokenizer notes in
-`docs/modules/KNOWLEDGE_INDEX.md` §5–§6). After acceptance, the next phase is
-Phase 4 — the safe Library v1 → v2 desktop upgrade. Do not start Phase 4
+None automatically — Phase 4 sits at its owner review gate. The owner should
+run the upgrade on a **copy of a real library**: open the library
+(Library → Open Library Folder...), then **Library → Upgrade Library to v2
+(Knowledge Base)...**, and review preview, report, final acceptance, and
+rollback per `docs/modules/LIBRARY_UPGRADE.md`. After acceptance, the next
+phase is Phase 5 — the bottom search-strip UX shell. Do not start Phase 5
 before that.
 
-## Not Verified in Phase 3
+## Not Verified in Phase 4
 
-- No desktop UI exercises the index (none exists yet).
-- Worker-thread offload is a documented requirement, not a running
-  integration.
-- Timings come from the development machine only.
+- Cancellation through the real worker thread in a visible desktop session
+  (tests call the migrator and dialog slots directly).
+- Migration of the owner's real library (that is the review gate).
+- The v2 vault is not yet browsable in the main window; that surface arrives
+  in Phase 5+.
 
 ## Required Reading for the Next Contributor
 
 1. `AGENTS.md` if present at the repository/workspace boundary
-2. `docs/HANDOFF.md`
-3. `docs/DEVELOPMENT_PLAN.md`
-4. `docs/modules/KNOWLEDGE_BASE_SCHEMA.md` and
-   `docs/modules/KNOWLEDGE_INDEX.md`
-5. `docs/modules/ENGINEERING_KNOWLEDGE_BASE.md`
-6. `docs/CURRENT_STATUS.md` (section 17 is the newest record)
-7. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (ADR-019)
+2. `docs/HANDOFF.md` and `docs/DEVELOPMENT_PLAN.md`
+3. `docs/modules/LIBRARY_UPGRADE.md` (Phase 4 contract)
+4. `docs/modules/KNOWLEDGE_BASE_SCHEMA.md`, `KNOWLEDGE_INDEX.md`
+5. `docs/CURRENT_STATUS.md` (section 18 is the newest record)
+6. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (ADR-019)
 
 ## Verification Rule
 
-The next contributor must not claim the index or full test suite is verified
-merely because this document says so. It must run the tests in the current
-checkout and record the actual result.
+The next contributor must not claim the migration or full test suite is
+verified merely because this document says so. It must run the tests in the
+current checkout and record the actual result.

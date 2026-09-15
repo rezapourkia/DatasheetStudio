@@ -1522,6 +1522,15 @@ class MainWindow(QMainWindow):
         create_library_action.setStatusTip("Create a new empty library folder")
         create_library_action.triggered.connect(self._create_library_dialog)
 
+        upgrade_library_action = library_menu.addAction(
+            "Upgrade Library to v2 (Knowledge Base)..."
+        )
+        upgrade_library_action.setStatusTip(
+            "Safely migrate this library into a v2 knowledge-base vault "
+            "(preview, report, accept or roll back; v1 is never modified)"
+        )
+        upgrade_library_action.triggered.connect(self._open_library_upgrade_dialog)
+
         library_menu.addSeparator()
         self._add_to_library_action = library_menu.addAction(
             "Add Current PDF to &Library..."
@@ -1564,6 +1573,23 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Library actions
     # ------------------------------------------------------------------
+
+    def _open_library_upgrade_dialog(self) -> None:
+        """Open the v1 -> v2 knowledge-base upgrade for the active library."""
+        store = self._library_service.store
+        if store is None:
+            QMessageBox.information(
+                self,
+                "Upgrade Library to v2",
+                "Open a v1 library folder first (Library -> Open Library Folder...).",
+            )
+            return
+        from datasheet_studio.ui.dialogs.library_upgrade_dialog import (
+            LibraryUpgradeDialog,
+        )
+
+        dialog = LibraryUpgradeDialog(str(store.root), self)
+        dialog.exec()
 
     def _open_library_folder_dialog(self) -> None:
         """Ask for a folder and open it as a library if it is one."""

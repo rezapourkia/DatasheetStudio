@@ -148,3 +148,43 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Handoff: owner reviews search syntax and result ordering (representative
   part/core queries) at the Phase 3 gate; Phase 4 (safe v1→v2 library
   upgrade UI) starts only after acceptance.
+
+## 2026-09-15 — Phase 4 — Safe Library v1 → v2 desktop upgrade implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه بده" — acceptance of Phase 3 and
+  continuation to Phase 4)
+- Scope: Phase 4 only per `docs/DEVELOPMENT_PLAN.md` — migration preview,
+  recoverable backup, copy/hash/import without deleting originals, duplicate/
+  ambiguous/skipped/failure reporting, cancel and rollback from the desktop
+  UI. First phase with a visible UI change.
+- Changed: added `docs/modules/LIBRARY_UPGRADE.md` (contract first),
+  `src/datasheet_studio/infrastructure/storage/knowledge_vault.py`,
+  `src/datasheet_studio/services/library_migration.py`,
+  `src/datasheet_studio/ui/dialogs/library_upgrade_dialog.py`,
+  `is_valid_pdf_file()` in `src/datasheet_studio/infrastructure/pdf/reader.py`,
+  a Library-menu action in `main_window.py`, three test modules
+  (`test_knowledge_vault.py`, `test_library_migration.py`,
+  `test_library_upgrade_dialog.py`), `pyproject.toml` deploy-list entries,
+  and status doc updates.
+- Verification: 21 new unit tests pass — vault layout/object dedup by hash/
+  envelope round-trip/TOML identity/accept/rollback; migration success with
+  v1 files and manifest byte-identical afterwards, records + searchable
+  index + report files written; duplicates (one object, two records);
+  invalid PDF and missing file skipped with reasons; simulated
+  `PermissionError` on object copy reported per-item while migration
+  continues; cancellation and injected unexpected error remove the partial
+  vault; rollback after success; preview counts; dialog preview/report/
+  accept/rollback offscreen (QSettings cleaned up). Full regression
+  **227 passed in 64.98 s**; compile check and offscreen startup smoke
+  passed. Test fixes during the pass: byte-identical duplicate fixture
+  (PyMuPDF embeds metadata so two saves differ), required `manufacturer`
+  argument, and permission patch aimed at the vault module's `shutil`.
+- Not verified: cancellation through the real worker thread inside a visible
+  desktop session; migration of the owner's real library copy (this is the
+  Phase 4 review gate); large-library timings beyond the Phase 3 fixture.
+- Commit: this commit
+- Handoff: owner runs **Library → Upgrade Library to v2** on a copy of a real
+  library and reviews preview/report/accept/rollback; Phase 5 (bottom search
+  strip UX shell) starts only after acceptance.

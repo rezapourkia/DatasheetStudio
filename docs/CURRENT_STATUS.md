@@ -913,3 +913,43 @@ equivalence incl. page/field snippets, corruption recovery from a garbage
 file, query grammar incl. Persian free text, and a synthetic 1,500-document /
 6,000-field / 3,000-page performance fixture — build ≈ 0.2 s, queries ≤ 4 ms
 on the development machine).
+
+---
+
+## 18. Phase 4 — Safe Library v1 → v2 Desktop Upgrade — 2026-09-15
+
+Implemented per `docs/modules/LIBRARY_UPGRADE.md` (contract written first).
+This is the first phase with a visible desktop change:
+
+- **Menu:** **Library → Upgrade Library to v2 (Knowledge Base)...** opens the
+  Persian RTL `LibraryUpgradeDialog` for the active v1 library.
+- **Dialog flow:** preview (item/file/missing counts + bytes to copy),
+  cancellable run on a worker `QThread` with a progress bar, itemized report
+  (imported / duplicate / ambiguous / skipped / failed with reasons), and
+  explicit **final acceptance** (marks the vault accepted in `library.toml`
+  and stores `knowledgeBasePath` in QSettings) or **rollback** (deletes the
+  v2 vault and clears the setting).
+- **Vault writer** (`infrastructure/storage/knowledge_vault.py`): creates the
+  v2 layout (`library.toml` via a stdlib TOML writer validated against the
+  Phase 2 `LibraryIdentity`, `objects/sha256/<hh>/<hash>.pdf`,
+  `records/.../record.md` + `record.json` envelope, `migration/` backup and
+  reports) and rebuilds the Phase 3 index.
+- **Migration service** (`services/library_migration.py`): per-item import
+  with SHA-256 duplicate resolution (one object, per-item records), skipped
+  entries for missing/invalid PDFs (PyMuPDF check isolated in
+  `infrastructure/pdf`), failure entries on copy errors (migration
+  continues), ambiguous entries when part number/manufacturer were absent,
+  and abort-with-cleanup semantics for cancellation or unexpected errors.
+  The v1 library is never modified — verified byte-for-byte in tests.
+- Browsing still happens in the v1 panel during the transition; the v2
+  surface arrives with the Phase 5 search strip.
+
+Verification: full regression **227 passed in 64.98 s** (21 new tests: vault
+layout/dedup/envelope/TOML/accept/rollback; migration success with v1
+byte-identical + searchable index, duplicates, invalid/missing files,
+simulated `PermissionError`, cancellation and unexpected-error cleanup,
+rollback-after-success, preview counts; dialog preview/report/accept/rollback
+offscreen with QSettings cleanup). Compile check and offscreen startup smoke
+passed. Not verified: real-worker-thread cancellation inside a visible
+desktop session and a migration of the owner's real library (that is the
+Phase 4 review gate).

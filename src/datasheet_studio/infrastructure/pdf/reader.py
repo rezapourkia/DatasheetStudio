@@ -17,6 +17,16 @@ class PdfOpenError(Exception):
     """Raised when a PDF cannot be opened or read."""
 
 
+def is_valid_pdf_file(path: str | Path) -> bool:
+    """True when ``path`` opens as a real PDF document."""
+
+    try:
+        with pymupdf.open(str(path)) as doc:
+            return bool(doc.is_pdf)
+    except Exception:  # noqa: BLE001 - any open failure means "not a PDF"
+        return False
+
+
 class PdfReader:
     """Read PDF files and return domain-level document information."""
 
