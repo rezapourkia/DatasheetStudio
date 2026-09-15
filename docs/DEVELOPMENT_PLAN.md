@@ -132,8 +132,8 @@ only location of a requirement, decision, test result, or unfinished action.
 | 3 | Rebuildable SQLite/FTS index | `ACCEPTED` | Fast metadata/full-text index that can be deleted and rebuilt safely |
 | 4 | Safe Library v1 → v2 desktop upgrade | `ACCEPTED` | Preview, backup, import, rollback, and no-delete migration UI |
 | 5 | Bottom search strip UX shell | `ACCEPTED` | Collapsible bottom search using mock/local adapter data for UX approval |
-| 6 | Online source adapter framework | `REVIEW` | Provider-independent search, normalized results, safe download, first official adapter |
-| 7 | Complete document text/OCR coverage | `PLANNED` | Page coverage ledger and pluggable OCR boundary |
+| 6 | Online source adapter framework | `ACCEPTED` | Provider-independent search, normalized results, safe download, first official adapter |
+| 7 | Complete document text/OCR coverage | `REVIEW` | Page coverage ledger and pluggable OCR boundary |
 | 8 | Controller profile and evidence schema | `PLANNED` | Strict reusable IC profile with field-level citations and review states |
 | 9 | AI extraction artifacts and review UI | `PLANNED` | Versioned MD prompt, validated response, diff/review/accept flow |
 | 10 | Current-datasheet handoff to Flyback | `PLANNED` | Open PDF/profile becomes explicit Flyback project context |
@@ -590,14 +590,14 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 5 was accepted for sequencing by the owner (2026-09-15, "ادامه بده");
-the daily-workflow UX review stays open as documented in the work log. Phase
-6 (online source adapter framework) is implemented, tested, and pushed; it is
-awaiting the owner review gate: exercise DigiKey with real credentials via
-**Library → Online Sources Settings… → تست اتصال** and judge result usefulness in
-the bottom strip (`docs/modules/ONLINE_ADAPTER_FRAMEWORK.md`). Recorded
-verification: full regression **258 passed in 66.39 s** (22 new offline tests
-with a mocked HTTP transport), compile check and offscreen startup smoke
-passed. **The real DigiKey integration is UNTESTED** — no valid credentials
-were available; mark it tested only after the owner exercises it. Do not
-begin Phase 7 until the owner accepts the Phase 6 review.
+Phase 6 (including the owner-directed embedded-browser correction) was
+accepted (2026-09-15, "برای فعلا خوبه"). Phase 7 (complete document
+text/OCR coverage) is implemented, tested, and pushed; it is awaiting the
+owner review gate: open a representative datasheet (e.g. DK124/DK125/
+TMG0656) and run **Tools → Knowledge Base → پوشش متن سند…**
+(`docs/modules/TEXT_EXTRACTION_COVERAGE.md`). Recorded verification: full
+regression **277 passed in 67.13 s** (14 new tests: mixed
+searchable/scanned/failed ledgers, completeness rule, cache reuse and
+cancellation, fake-OCR and NoOcrAdapter behavior, page-aware index
+integration, dialog rendering, registry entry). Do not begin Phase 8 until
+the owner accepts the Phase 7 review.

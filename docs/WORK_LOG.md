@@ -291,3 +291,40 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Handoff: owner tries the embedded browser (strip «وب» source or Library →
   Search Datasheets Online...): Google search, open a PDF, save it to the
   library — all inside the app. Corrections stay within Phase 6.
+
+## 2026-09-15 — Phase 7 — Complete document text/OCR coverage implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه بده / برای فعلا خوبه" — Phase 6
+  acceptance including the embedded-browser correction)
+- Scope: Phase 7 only per `docs/DEVELOPMENT_PLAN.md` — coverage ledger,
+  normalized page markers, text-poor detection, pluggable OCR boundary,
+  background progress/cancellation, hash-addressed extraction cache, index
+  integration.
+- Changed: added `docs/modules/TEXT_EXTRACTION_COVERAGE.md` (contract
+  first), `src/datasheet_studio/services/text_extraction.py`,
+  `src/datasheet_studio/infrastructure/ocr/__init__.py`,
+  `src/datasheet_studio/ui/dialogs/extraction_coverage_dialog.py`,
+  `src/datasheet_studio/tools/text_coverage_tool.py` (registered under
+  category "Knowledge Base"), `pyproject.toml` deploy entries, tests
+  (`test_text_extraction.py`, `test_extraction_dialog.py`), and status doc
+  updates; `test_flyback_dialog.py` tool/category expectations updated for
+  the third registered tool.
+- Verification: 14 new unit tests — mixed searchable/scanned/failed ledger,
+  completeness rule, failed-page tolerance, cache reuse (extraction counter
+  proves no re-run), page markers, cancellation leaves cache intact,
+  fake-OCR completes scanned docs, NoOcrAdapter/absence keeps `scanned`,
+  page-text searchability through the vault index, dialog banners/table,
+  registry entry; full regression **277 passed in 67.13 s**; compile check
+  and offscreen startup smoke (three tools registered) passed. Service fix
+  during the pass: the index is now created on demand when a vault has no
+  index file yet (page indexing was silently skipped before).
+- Not verified: a real OCR engine (none selected — pending owner decision),
+  coverage of the owner's real DK124/DK125/TMG0656 documents (review gate),
+  and chunk/evidence artifacts (`chunks.json`, `evidence.json` — later
+  phases by contract).
+- Commit: this commit
+- Handoff: owner runs Tools → Knowledge Base → پوشش متن سند… on a
+  representative datasheet at the Phase 7 gate; Phase 8 (controller profile
+  and evidence schema) starts only after acceptance.

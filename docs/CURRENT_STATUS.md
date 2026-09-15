@@ -1059,3 +1059,42 @@ immediate searchability); full regression **263 passed in 69.98 s**; compile
 check and offscreen startup smoke (web source listed in the strip combo).
 Not verified in a visible desktop session here: actual Google rendering and
 a real download inside the embedded browser (owner gate).
+
+---
+
+## 21. Phase 7 — Complete Document Text/OCR Coverage — 2026-09-15
+
+Implemented per `docs/modules/TEXT_EXTRACTION_COVERAGE.md` (contract written
+first):
+
+- `services/text_extraction.py`: page-by-page extraction through
+  `infrastructure/pdf` with a **coverage ledger** — every page is
+  `extracted`, `scanned` (text-poor < 32 significant chars), `ocr`, or
+  `failed` (reason kept). `DocumentCoverage.is_complete` is true only when
+  every page is accounted for, so a "complete document" claim is impossible
+  while any page is pending/scanned/failed (enforced + tested).
+- Artifacts cached by content hash under the vault at
+  `extracted/<source-hash>/` (`coverage.json` + `full-text.md` with
+  `<!-- page:N -->` markers). Compatible caches (same extractor version and
+  page count) are reused without re-extraction; cancellation aborts before
+  any cache write, leaving the previous state intact.
+- OCR is a replaceable boundary (`infrastructure/ocr`): `NoOcrAdapter`
+  ships by default (button disabled in UI with explanation); a future
+  Tesseract/AI adapter can plug in without touching extraction. OCR is
+  opt-in; adapter failures keep the page `scanned` and are reported.
+- Index integration: extracted/OCR page text is pushed into the rebuildable
+  index (`page_texts`), making whole documents searchable page-by-page from
+  the bottom strip; the index is created on demand when missing.
+- Desktop surface: registered tool **Tools → Knowledge Base → پوشش متن
+  سند…** opens a Persian RTL dialog for the open PDF — per-page status
+  table (صفحه/وضعیت/تعداد نویسه), completeness banner (green/amber with
+  counts of scanned/failed/pending), «استخراج متن» with worker thread,
+  progress, and cancellation; OCR button enabled only when an adapter is
+  wired.
+
+Verification: full regression **277 passed in 67.13 s** (14 new tests;
+fixture bugs found and fixed during the pass: implicit string concatenation
+in the test constant and pymupdf clipping single-line page text at the page
+edge — now wrapped). Not verified: real OCR (no engine selected yet — owner
+decision), and coverage runs against the owner's real DK124/DK125/TMG0656
+documents (review gate).

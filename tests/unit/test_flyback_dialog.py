@@ -55,8 +55,10 @@ def test_loaded_custom_core_can_be_reselected_without_crashing(qapp_instance):
 def test_main_window_builds_tools_menu_from_registry(qapp_instance):
     window = MainWindow()
     try:
+        # Registry order = category alphabetical: CAD, Knowledge Base, Power Design
         assert [tool.id for tool in window._tool_registry.list_tools()] == [
             "symbol-creator",
+            "document-text-coverage",
             "flyback-designer",
         ]
         tools_action = next(
@@ -64,7 +66,7 @@ def test_main_window_builds_tools_menu_from_registry(qapp_instance):
         )
         assert tools_action.menu() is not None
         categories = window._tool_category_menus
-        assert set(categories) == {"CAD", "Power Design"}
+        assert set(categories) == {"CAD", "Knowledge Base", "Power Design"}
         assert [action.text() for action in categories["CAD"].actions()] == [
             "Symbol Creator…"
         ]
