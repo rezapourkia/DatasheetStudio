@@ -33,6 +33,13 @@ def _require(text: object, label: str) -> str:
     return text.strip()
 
 
+def _require_provenance(source_hash: object, page: object, label: str) -> None:
+    if not isinstance(source_hash, str) or not source_hash.strip():
+        raise CatalogValidationError(f"«منبع {label}» (هش سند منبع) الزامی است.")
+    if not isinstance(page, int) or page < 1:
+        raise CatalogValidationError(f"«صفحهٔ منبع {label}» الزامی است.")
+
+
 def _review_state(state: object) -> str:
     value = str(state or "").strip()
     if value not in ALLOWED_REVIEW_STATES:
@@ -71,6 +78,12 @@ class CoreRecord:
             ("MLT", self.mlt_mm), ("Ve", self.ve_mm3), ("Bmax", self.b_max_t),
         ):
             _positive(value, f"هندسه {name}")
+        for gap in self.gap_options_um:
+            if not isinstance(gap, (int, float)) or gap <= 0:
+                raise CatalogValidationError(
+                    f"گپ «{gap!r}» نامعتبر است؛ باید عددی مثبت (میکرومتر) باشد."
+                )
+        _require_provenance(self.source_hash, self.page, "هسته")
         _review_state(self.review_state)
 
 
@@ -98,6 +111,16 @@ class MaterialRecord:
             raise CatalogValidationError("دامنهٔ فرکانس جنس نامعتبر است (min ≥ max).")
         if self.temp_min_c >= self.temp_max_c:
             raise CatalogValidationError("دامنهٔ دمای جنس نامعتبر است (min ≥ max).")
+        coefficients = (self.loss_k, self.loss_alpha, self.loss_beta)
+        if any(c is not None for c in coefficients):
+            if not all(
+                isinstance(c, (int, float)) and not isinstance(c, bool) and c > 0
+                for c in coefficients
+            ):
+                raise CatalogValidationError(
+                    "ضریب‌های تلفات باید کامل (k و alpha و beta) و مثبت باشند."
+                )
+        _require_provenance(self.source_hash, self.page, "جنس")
         _review_state(self.review_state)
 
 
@@ -124,6 +147,7 @@ class BobbinRecord:
             ("فاصله خزشی", self.creepage_mm),
         ):
             _positive(value, f"بوبین {name}")
+        _require_provenance(self.source_hash, self.page, "بوبین")
         _review_state(self.review_state)
 
 
@@ -135,8 +159,18 @@ class CatalogPack:
     materials: tuple[MaterialRecord, ...] = ()
     bobbins: tuple[BobbinRecord, ...] = ()
     manifest_hash: str = ""
+    imported_at: str = ""
 
     def validate(self) -> None:
+        def ensure_unique(codes: list[str], label: str) -> None:
+            if len(set(codes)) != len(codes):
+                raise CatalogValidationError(
+                    f"کد {label} تکراری در پک وجود دارد."
+                )
+
+        ensure_unique([core.ordering_code for core in self.cores], "هسته")
+        ensure_unique([material.code for material in self.materials], "جنس")
+        ensure_unique([bobbin.code for bobbin in self.bobbins], "بوبین")
         cores = {core.ordering_code: core for core in self.cores}
         bobbins = {bobbin.code: bobbin for bobbin in self.bobbins}
         materials = {material.code: material for material in self.materials}
@@ -177,6 +211,7 @@ class CatalogPack:
             "provider": self.provider,
             "pack_version": self.pack_version,
             "manifest_hash": self.manifest_hash,
+            "imported_at": self.imported_at,
             "cores": [asdict(c) for c in self.cores],
             "materials": [asdict(m) for m in self.materials],
             "bobbins": [asdict(b) for b in self.bobbins],
@@ -233,6 +268,7 @@ def pack_from_dict(data: Mapping[str, Any]) -> CatalogPack:
             for b in data.get("bobbins", [])
         ),
         manifest_hash=str(data.get("manifest_hash", "")),
+        imported_at=str(data.get("imported_at", "")),
     )
     pack.validate()
     return pack

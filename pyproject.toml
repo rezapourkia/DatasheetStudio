@@ -55,6 +55,7 @@ files = [
     "src/datasheet_studio/ui/dialogs/extraction_coverage_dialog.py",
     "src/datasheet_studio/ui/dialogs/controller_profile_dialog.py",
     "src/datasheet_studio/ui/dialogs/ai_extraction_review_dialog.py",
+    "src/datasheet_studio/ui/dialogs/catalog_manager_dialog.py",
     "src/datasheet_studio/models/__init__.py",
     "src/datasheet_studio/models/library_item.py",
     "src/datasheet_studio/models/page_annotation.py",

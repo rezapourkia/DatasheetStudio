@@ -59,6 +59,7 @@ def test_main_window_builds_tools_menu_from_registry(qapp_instance):
         assert [tool.id for tool in window._tool_registry.list_tools()] == [
             "symbol-creator",
             "ai-profile-extraction",
+            "catalog-manager",
             "controller-profile",
             "document-text-coverage",
             "flyback-designer",

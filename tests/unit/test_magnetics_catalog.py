@@ -20,6 +20,7 @@ def core(**over):
         manufacturer="TDK", family="EE19/17", ordering_code="B66208-G-X187",
         ae_mm2=32.0, aw_mm2=42.0, le_mm=39.4, mlt_mm=41.0, ve_mm3=1260.0,
         b_max_t=0.39, material_code="N87", bobbin_codes=("B66208-W-X187",),
+        source_hash="f" * 64, page=4,
     )
     data.update(over)
     return CoreRecord(**data)
@@ -29,6 +30,7 @@ def material(**over):
     data = dict(
         manufacturer="TDK", code="N87", permeability=2200.0,
         freq_min_khz=25.0, freq_max_khz=500.0, temp_min_c=25.0, temp_max_c=100.0,
+        source_hash="f" * 64, page=7,
     )
     data.update(over)
     return MaterialRecord(**data)
@@ -39,6 +41,7 @@ def bobbin(**over):
         manufacturer="TDK", code="B66208-W-X187",
         winding_width_mm=9.0, winding_height_mm=5.0, winding_area_mm2=45.0,
         creepage_mm=3.0, compatible_core_codes=("B66208-G-X187",),
+        source_hash="f" * 64, page=9,
     )
     data.update(over)
     return BobbinRecord(**data)

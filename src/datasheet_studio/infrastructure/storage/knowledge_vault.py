@@ -245,8 +245,16 @@ class KnowledgeVault:
     def write_catalog_pack(self, pack) -> Path:
         """Store a validated catalogue pack at catalogs/<provider>/<version>/."""
 
+        from dataclasses import replace as _replace
+        from datetime import datetime, timezone
+
         from datasheet_studio.models.magnetics_catalog import dump_pack
 
+        if not pack.imported_at:
+            pack = _replace(
+                pack,
+                imported_at=datetime.now(timezone.utc).isoformat(timespec="microseconds"),
+            )
         folder = (
             self._root / "catalogs"
             / _safe_segment(pack.provider) / _safe_segment(pack.pack_version)
@@ -279,6 +287,8 @@ class KnowledgeVault:
                 packs.append(load_pack(target.read_text(encoding="utf-8")))
             except Exception:
                 continue
+        # Order by import time first; version string only breaks ties.
+        packs.sort(key=lambda item: (item.imported_at, item.pack_version))
         return packs
 
     def rollback_catalog_pack(self, provider: str, pack_version: str) -> None:

@@ -4,9 +4,13 @@
 
 ## Contract
 
-1. **Unbounded outputs:** the old 1–8 output cap is removed; the domain and
-   UI accept up to 64 outputs (error message above that), the engine
-   validates ≥ 1.
+1. **64-output-capable (not unbounded — review correction):** the old 1–8
+   output cap is removed; the domain and UI accept up to 64 outputs (a clear
+   error above that), the engine validates ≥ 1. Missing rail/scenario
+   EDITORS (isolation group, load range, priority, rectifier/capacitor
+   references, feedback participation, per-scenario editing) are domain
+   fields today but NOT yet user-editable desktop inputs — an explicitly
+   open item before the multi-output workflow is claimed usable.
 2. **Extended `OutputSpec`** (all defaulted, so v1 projects keep loading):
    `output_id`, `isolation_group` (default `"main"`), `priority`,
    `load_min_a`/`load_max_a` (load range), `rectifier_id`,

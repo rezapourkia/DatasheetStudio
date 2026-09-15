@@ -6,6 +6,7 @@ from .symbol_creator_tool import SymbolCreatorTool
 from .text_coverage_tool import DocumentTextCoverageTool
 from .controller_profile_tool import ControllerProfileTool
 from .ai_extraction_tool import AiProfileExtractionTool
+from .catalog_manager_tool import CatalogManagerTool
 
 
 def create_default_tool_registry() -> ToolRegistry:
@@ -15,6 +16,7 @@ def create_default_tool_registry() -> ToolRegistry:
     registry.register(DocumentTextCoverageTool())
     registry.register(ControllerProfileTool())
     registry.register(AiProfileExtractionTool())
+    registry.register(CatalogManagerTool())
     return registry
 
 

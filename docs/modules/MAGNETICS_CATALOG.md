@@ -2,6 +2,17 @@
 
 **Status:** Active module contract — **Plan:** Phase 12 in `docs/DEVELOPMENT_PLAN.md`
 
+> Review correction (2026-09-15, `docs/REVIEW_FINDINGS.md`): provenance
+> (source hash + page) is now REQUIRED on every record; duplicate codes,
+> partial/non-positive loss coefficients, invalid gap options are
+> rejected; pack ordering uses the import timestamp (microsecond) — not
+> lexicographic versions. A no-CLI Persian pack manager
+> (**Tools → Knowledge Base → مدیر کاتالوگ مغناطیسی…**) handles
+> open/preview-diff/install/rollback. **Still open:** a real downloaded
+> manufacturer pack (the TDK example in tests is a fixture, not official
+> data) and recording URL/licensing per pack field — this phase remains
+> at REVIEW and is NOT reported as a delivered real core bank.
+
 ## Contract
 
 1. **Records** (`models/magnetics_catalog.py`): `CoreRecord` (exact
