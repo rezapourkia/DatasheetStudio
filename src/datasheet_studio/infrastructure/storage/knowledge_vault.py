@@ -242,6 +242,61 @@ class KnowledgeVault:
                 knowledge_index.close()
         return target
 
+    def write_catalog_pack(self, pack) -> Path:
+        """Store a validated catalogue pack at catalogs/<provider>/<version>/."""
+
+        from datasheet_studio.models.magnetics_catalog import dump_pack
+
+        folder = (
+            self._root / "catalogs"
+            / _safe_segment(pack.provider) / _safe_segment(pack.pack_version)
+        )
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / "pack.json"
+        target.write_text(dump_pack(pack), encoding="utf-8")
+        manifest = (
+            f"# {pack.provider} — pack {pack.pack_version}\n\n"
+            f"- cores: {len(pack.cores)}\n"
+            f"- materials: {len(pack.materials)}\n"
+            f"- bobbins: {len(pack.bobbins)}\n"
+            f"- manifest hash: `{pack.manifest_hash or '—'}`\n"
+        )
+        (folder / "manifest.md").write_text(manifest, encoding="utf-8",
+        )
+        return target
+
+    def catalog_packs(self) -> list:
+        """All installed packs, newest-last per provider (offline cache)."""
+
+        from datasheet_studio.models.magnetics_catalog import load_pack
+
+        packs = []
+        root = self._root / "catalogs"
+        if not root.is_dir():
+            return []
+        for target in sorted(root.glob("*/*/pack.json")):
+            try:
+                packs.append(load_pack(target.read_text(encoding="utf-8")))
+            except Exception:
+                continue
+        return packs
+
+    def rollback_catalog_pack(self, provider: str, pack_version: str) -> None:
+        """Delete one installed pack version (pack files only, never user data)."""
+
+        import shutil as _shutil
+
+        folder = (
+            self._root / "catalogs"
+            / _safe_segment(provider) / _safe_segment(pack_version)
+        )
+        if folder.exists():
+            _shutil.rmtree(folder)
+
+    def latest_catalog_pack(self, provider: str):
+        packs = [p for p in self.catalog_packs() if p.provider == provider]
+        return packs[-1] if packs else None
+
     def controller_profiles_for(self, source_hash: str) -> list:
         """Newest-first controller profiles in this vault bound to a source."""
 

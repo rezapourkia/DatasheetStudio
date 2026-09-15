@@ -61,6 +61,7 @@ files = [
     "src/datasheet_studio/models/pdf_document.py",
     "src/datasheet_studio/models/search.py",
     "src/datasheet_studio/models/controller_profile.py",
+    "src/datasheet_studio/models/magnetics_catalog.py",
     "src/datasheet_studio/models/knowledge_base.py",
     "src/datasheet_studio/models/selected_page.py",
     "src/datasheet_studio/services/__init__.py",

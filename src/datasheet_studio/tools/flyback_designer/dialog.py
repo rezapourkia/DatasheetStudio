@@ -165,6 +165,7 @@ class FlybackDesignerDialog(QDialog):
         self._core_combo = QComboBox()
         for core in self._cores_by_id.values():
             self._core_combo.addItem(core.name, core.core_id)
+        self._load_catalog_cores()
         self._core_combo.currentIndexChanged.connect(self._load_selected_core)
         magnetic_form.addRow("هسته نمونه", self._core_combo)
         self._add_spin(magnetic_form, "سطح مؤثر Ae", "ae_mm2", 0.01, 10000, 3, " mm²")
@@ -312,6 +313,46 @@ class FlybackDesignerDialog(QDialog):
     def _schedule_recalculate(self, *_args) -> None:
         if not self._loading:
             self._recalculate_timer.start()
+
+    def _load_catalog_cores(self) -> None:
+        """Add exact catalogue cores from installed packs (offline cache)."""
+
+        vault_path = ""
+        try:
+            from PySide6.QtCore import QSettings
+
+            from datasheet_studio.core.constants import APP_NAME, APP_ORGANIZATION
+
+            vault_path = str(
+                QSettings(APP_ORGANIZATION, APP_NAME).value("knowledgeBasePath", "") or ""
+            )
+        except Exception:
+            vault_path = ""
+        if not vault_path:
+            return
+        try:
+            from datasheet_studio.infrastructure.storage.knowledge_vault import (
+                KnowledgeVault,
+            )
+
+            packs = KnowledgeVault(vault_path).catalog_packs()
+        except Exception:
+            return
+        for pack in packs:
+            for core in pack.cores:
+                core_id = f"catalog:{pack.provider}:{core.ordering_code}"
+                if core_id in self._cores_by_id:
+                    continue
+                spec = CoreSpec(
+                    core_id=core_id,
+                    name=f"{core.ordering_code} · {core.manufacturer} ({core.review_state})",
+                    ae_mm2=core.ae_mm2, aw_mm2=core.aw_mm2, le_mm=core.le_mm,
+                    mlt_mm=core.mlt_mm, ve_mm3=core.ve_mm3, bmax_t=core.b_max_t,
+                    verified=core.review_state == "reviewed",
+                    source=f"کاتالوگ {pack.provider} نسخهٔ {pack.pack_version}",
+                )
+                self._cores_by_id[core_id] = spec
+                self._core_combo.addItem(spec.name, core_id)
 
     def _load_selected_core(self, index: int) -> None:
         if self._loading or index < 0:

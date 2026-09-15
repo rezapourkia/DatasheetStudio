@@ -137,8 +137,8 @@ only location of a requirement, decision, test result, or unfinished action.
 | 8 | Controller profile and evidence schema | `ACCEPTED` | Strict reusable IC profile with field-level citations and review states |
 | 9 | AI extraction artifacts and review UI | `ACCEPTED` | Versioned MD prompt, validated response, diff/review/accept flow |
 | 10 | Current-datasheet handoff to Flyback | `ACCEPTED` | Open PDF/profile becomes explicit Flyback project context |
-| 11 | Flyback domain v2 outputs and scenarios | `REVIEW` | Unbounded domain outputs, isolation groups, load/tolerance scenario matrix |
-| 12 | Real magnetics catalogue foundation | `PLANNED` | Exact core/material/bobbin records, source packs, cache/update UI |
+| 11 | Flyback domain v2 outputs and scenarios | `ACCEPTED` | Unbounded domain outputs, isolation groups, load/tolerance scenario matrix |
+| 12 | Real magnetics catalogue foundation | `REVIEW` | Exact core/material/bobbin records, source packs, cache/update UI |
 | 13 | Transformer feasibility and alternatives | `PLANNED` | Physical constraints and deterministic nearby-core ranking |
 | 14 | Per-output rectifier/capacitor analysis | `PLANNED` | Ripple, RMS, ESR, diode stress/loss for every rail and scenario |
 | 15 | Transformer, switch, clamp, and thermal loss | `PLANNED` | Corner-case loss budget and thermal iteration with explicit unknowns |
@@ -590,12 +590,13 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 10 was accepted by the owner (2026-09-15). Phase 11 (Flyback domain
-v2 outputs and scenarios) is implemented, tested, and pushed per
-`docs/modules/FLYBACK_DOMAIN_V2.md`; it is awaiting the owner review gate:
-build representative one-output, dual-isolated, and multi-output designs.
-Recorded verification: full regression **317 passed in 67.04 s** (6 new domain-v2
-tests: 64-output acceptance and >64 rejection, per-scenario/per-isolation
-power accounting, default scenario matrix, v1 upgrade round-trip without
-data loss, group/load/priority validation). Do not begin Phase 12 until
-the owner accepts the Phase 11 review.
+Phase 11 was accepted by the owner (2026-09-15). Phase 12 (real magnetics
+catalogue foundation) is implemented, tested, and pushed per
+`docs/modules/MAGNETICS_CATALOG.md`; it is awaiting the owner review gate:
+check exact ordering codes/drawings for the first supported core family
+(TDK EE19 example pack in tests). Recorded verification: full regression
+**327 passed in 67.01 s** (10 new tests: record/pack round-trip, the four
+rejection rules incl. mixed-manufacturer and undeclared bobbin
+compatibility, verified-import ban, pack diff preview, install/offline
+reload/rollback, and Flyback combo listing with geometry selection). Do
+not begin Phase 13 until the owner accepts the Phase 12 review.

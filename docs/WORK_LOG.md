@@ -413,3 +413,20 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Handoff: owner builds one-output, dual-isolated, and multi-output
   designs at the Phase 11 gate; Phase 12 (real magnetics catalogue
   foundation) starts after acceptance.
+
+## 2026-09-15 — Phase 12 — Real magnetics catalogue foundation implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه" — Phase 11 acceptance)
+- Scope: Phase 12 only.
+- Changed: `docs/modules/MAGNETICS_CATALOG.md`, `models/magnetics_catalog.py`,
+  vault pack storage/rollback, Flyback combo catalog loading,
+  `tests/unit/test_magnetics_catalog.py`, `pyproject.toml` deploy entry.
+- Verification: 10 new tests; full regression **327 passed in 67.01 s**.
+  Fix during pass: CoreSpec field name (`bmax_t`).
+- Not verified: a real downloaded manufacturer pack (fixture data in tests
+  is illustrative; owner review gate).
+- Commit: this commit
+- Handoff: owner checks the first supported core family's codes/drawings;
+  Phase 13 (transformer feasibility) starts after acceptance.

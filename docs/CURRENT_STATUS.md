@@ -1181,3 +1181,19 @@ scenarios default matrix) and round-trips v2 without data loss; the
 persistence loader now constructs typed ScenarioSpec objects.
 
 Verification: full regression **317 passed in 67.04 s** (6 new tests).
+
+---
+
+## 26. Phase 12 — Real Magnetics Catalogue Foundation — 2026-09-15
+
+Implemented per `docs/modules/MAGNETICS_CATALOG.md`: exact core/material/
+bobbin records with typed geometry, valid curve domains, declared
+compatibility, same-manufacturer-only links, and per-record provenance;
+review states limited to extracted/reviewed (verified can never be
+imported). Versioned packs store under `catalogs/<provider>/<version>/`
+with manifest, offline cache reads, per-version rollback, and a
+`pack_diff` update preview. The Flyback core combo lists exact catalogue
+cores from installed packs (samples still clearly marked) and selecting
+one fills the geometry.
+
+Verification: full regression **327 passed in 67.01 s** (10 new tests).
