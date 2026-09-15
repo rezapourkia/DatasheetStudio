@@ -1164,3 +1164,20 @@ defaults. Saved `.flyback.json` designs are never rewritten by a handoff
 (byte-identical, tested).
 
 Verification: full regression **312 passed in 66.85 s** (8 new tests).
+
+---
+
+## 25. Phase 11 — Flyback Domain v2 Outputs and Scenarios — 2026-09-15
+
+Implemented per `docs/modules/FLYBACK_DOMAIN_V2.md`: the 1–8 output cap is
+gone (domain/UI accept up to 64, engine rejects more with a clear message).
+`OutputSpec` gained `output_id`, `isolation_group`, `priority`,
+`load_min/max_a`, `rectifier_id`, `capacitor_id`, and `feedback` (all
+defaulted). New `ScenarioSpec` (bus_v/load_fraction/ambient_c) with a
+default min/nom/max-bus matrix, and the pure, unit-tested
+`power_summary()` for per-output/per-isolation-group/per-scenario power
+accounting. Persistence upgrades v1 files (missing keys → v2 defaults,
+scenarios default matrix) and round-trips v2 without data loss; the
+persistence loader now constructs typed ScenarioSpec objects.
+
+Verification: full regression **317 passed in 67.04 s** (6 new tests).

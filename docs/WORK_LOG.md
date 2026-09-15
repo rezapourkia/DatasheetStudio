@@ -393,3 +393,23 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: owner verifies PDF → Tools → Flyback flow at the Phase 10 gate;
   Phase 11 (Flyback domain v2 outputs/scenarios) starts after acceptance.
+
+## 2026-09-15 — Phase 11 — Flyback domain v2 outputs and scenarios implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه" — Phase 10 acceptance)
+- Scope: Phase 11 only per `docs/DEVELOPMENT_PLAN.md`.
+- Changed: `docs/modules/FLYBACK_DOMAIN_V2.md` (contract first), engine
+  (OutputSpec v2 fields, MAX_OUTPUTS=64, ScenarioSpec, group/load/priority
+  validation, power_summary), persistence (typed ScenarioSpec loading,
+  v1-missing-scenarios default), dialog (64-output cap),
+  `tests/unit/test_flyback_domain_v2.py`.
+- Verification: 6 new tests; full regression **317 passed in 67.04 s**.
+  Fixes during pass: persistence stored raw dict scenarios (typed loading
+  added) and missing v1 scenarios became [] instead of the default matrix.
+- Not verified: owner-built representative designs (review gate).
+- Commit: this commit
+- Handoff: owner builds one-output, dual-isolated, and multi-output
+  designs at the Phase 11 gate; Phase 12 (real magnetics catalogue
+  foundation) starts after acceptance.

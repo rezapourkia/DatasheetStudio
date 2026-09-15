@@ -329,8 +329,12 @@ class FlybackDesignerDialog(QDialog):
         self._schedule_recalculate()
 
     def _add_output(self) -> None:
-        if self._outputs_table.rowCount() >= 8:
-            QMessageBox.information(self, "خروجی‌ها", "حداکثر هشت خروجی پشتیبانی می‌شود.")
+        from .engine import MAX_OUTPUTS
+
+        if self._outputs_table.rowCount() >= MAX_OUTPUTS:
+            QMessageBox.information(
+                self, "خروجی‌ها", f"حداکثر {MAX_OUTPUTS} خروجی پشتیبانی می‌شود."
+            )
             return
         self._append_output(OutputSpec(f"خروجی {self._outputs_table.rowCount() + 1}", 5, 0.5))
         self._schedule_recalculate()

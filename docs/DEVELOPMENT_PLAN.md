@@ -136,8 +136,8 @@ only location of a requirement, decision, test result, or unfinished action.
 | 7 | Complete document text/OCR coverage | `ACCEPTED` | Page coverage ledger and pluggable OCR boundary |
 | 8 | Controller profile and evidence schema | `ACCEPTED` | Strict reusable IC profile with field-level citations and review states |
 | 9 | AI extraction artifacts and review UI | `ACCEPTED` | Versioned MD prompt, validated response, diff/review/accept flow |
-| 10 | Current-datasheet handoff to Flyback | `REVIEW` | Open PDF/profile becomes explicit Flyback project context |
-| 11 | Flyback domain v2 outputs and scenarios | `PLANNED` | Unbounded domain outputs, isolation groups, load/tolerance scenario matrix |
+| 10 | Current-datasheet handoff to Flyback | `ACCEPTED` | Open PDF/profile becomes explicit Flyback project context |
+| 11 | Flyback domain v2 outputs and scenarios | `REVIEW` | Unbounded domain outputs, isolation groups, load/tolerance scenario matrix |
 | 12 | Real magnetics catalogue foundation | `PLANNED` | Exact core/material/bobbin records, source packs, cache/update UI |
 | 13 | Transformer feasibility and alternatives | `PLANNED` | Physical constraints and deterministic nearby-core ranking |
 | 14 | Per-output rectifier/capacitor analysis | `PLANNED` | Ripple, RMS, ESR, diode stress/loss for every rail and scenario |
@@ -590,12 +590,12 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 9 was accepted by the owner (2026-09-15). Phase 10 (current-datasheet
-handoff to Flyback) is implemented, tested, and pushed per
-`docs/modules/FLYBACK_HANDOFF.md`; it is awaiting the owner review gate:
-open a controller datasheet with a saved profile, then Tools → Power Design
-→ طراح فلای‌بک… and check the identity banner and prefilled values.
-Recorded verification: full regression with the Phase-10 suite (8 new
-tests: hash/profile handoff, prefill + banner, unreviewed flagging with
-unknowns, manual no-PDF open, saved-design isolation). Do not begin Phase
-11 until the owner accepts the Phase 10 review.
+Phase 10 was accepted by the owner (2026-09-15). Phase 11 (Flyback domain
+v2 outputs and scenarios) is implemented, tested, and pushed per
+`docs/modules/FLYBACK_DOMAIN_V2.md`; it is awaiting the owner review gate:
+build representative one-output, dual-isolated, and multi-output designs.
+Recorded verification: full regression **317 passed in 67.04 s** (6 new domain-v2
+tests: 64-output acceptance and >64 rejection, per-scenario/per-isolation
+power accounting, default scenario matrix, v1 upgrade round-trip without
+data loss, group/load/priority validation). Do not begin Phase 12 until
+the owner accepts the Phase 11 review.

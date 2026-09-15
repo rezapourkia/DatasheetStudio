@@ -11,6 +11,9 @@ import math
 from typing import Mapping, Sequence
 
 
+MAX_OUTPUTS = 64
+
+
 @dataclass(slots=True)
 class OutputSpec:
     name: str
@@ -18,6 +21,24 @@ class OutputSpec:
     current_a: float
     diode_drop_v: float = 0.6
     diode_id: str = "generic-diode"
+    output_id: str = ""
+    isolation_group: str = "main"
+    priority: int = 0
+    load_min_a: float | None = None
+    load_max_a: float | None = None
+    rectifier_id: str = ""
+    capacitor_id: str = ""
+    feedback: bool = True
+
+
+@dataclass(slots=True)
+class ScenarioSpec:
+    """One operating point of the scenario matrix (Phase 11)."""
+
+    name: str = "nominal"
+    bus_v: float = 325.0
+    load_fraction: float = 1.0
+    ambient_c: float = 40.0
 
 
 @dataclass(slots=True)
@@ -81,6 +102,13 @@ class FlybackProject:
     notes: str = ""
     outputs: list[OutputSpec] = field(
         default_factory=lambda: [OutputSpec("خروجی اصلی", 12.0, 2.0)]
+    )
+    scenarios: list[ScenarioSpec] = field(
+        default_factory=lambda: [
+            ScenarioSpec("bus-min", bus_v=127.0),
+            ScenarioSpec("bus-nominal", bus_v=325.0),
+            ScenarioSpec("bus-max", bus_v=373.0),
+        ]
     )
 
 
@@ -270,8 +298,23 @@ def calculate(
     if any(not _finite(value) or float(value) <= 0 for value in core_values):
         errors.append("مشخصات هندسی یا مغناطیسی هسته نامعتبر است.")
 
-    if not 1 <= len(project.outputs) <= 8:
-        errors.append("تعداد خروجی‌ها باید بین یک تا هشت باشد.")
+    if not 1 <= len(project.outputs) <= MAX_OUTPUTS:
+        errors.append(
+            f"تعداد خروجی‌ها باید بین یک تا {MAX_OUTPUTS} باشد."
+        )
+    for index, output in enumerate(project.outputs, start=1):
+        if not isinstance(output.isolation_group, str) or not output.isolation_group.strip():
+            errors.append(f"گروه ایزولاسیون خروجی {index} نامعتبر است.")
+        if output.priority < 0:
+            errors.append(f"اولویت خروجی {index} نباید منفی باشد.")
+        if (
+            output.load_min_a is not None
+            and output.load_max_a is not None
+            and output.load_min_a > output.load_max_a
+        ):
+            errors.append(
+                f"بازهٔ بار خروجی {index} نامعتبر است (حداقل بیشتر از حداکثر)."
+            )
     for index, output in enumerate(project.outputs, start=1):
         if not isinstance(output.name, str) or not output.name.strip():
             errors.append(f"نام خروجی {index} معتبر نیست.")
@@ -658,3 +701,46 @@ def calculate(
         feedback=feedback,
         skin_depth_mm=66.0 / math.sqrt(frequency_hz),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class ScenarioPowerRow:
+    scenario: str
+    bus_v: float
+    load_fraction: float
+    output_power_w: dict[str, float]
+    group_power_w: dict[str, float]
+    total_power_w: float
+
+
+def power_summary(
+    project: FlybackProject,
+    scenarios: Sequence[ScenarioSpec] | None = None,
+) -> list[ScenarioPowerRow]:
+    """Deterministic per-scenario power accounting (Phase 11).
+
+    Power per output = V x I x load_fraction; group sums aggregate by
+    isolation_group; totals sum all outputs. Pure and unit-tested.
+    """
+
+    rows: list[ScenarioPowerRow] = []
+    for scenario in scenarios if scenarios is not None else project.scenarios:
+        per_output: dict[str, float] = {}
+        per_group: dict[str, float] = {}
+        for index, output in enumerate(project.outputs, start=1):
+            key = output.output_id or f"{index}:{output.name}"
+            power = output.voltage_v * output.current_a * scenario.load_fraction
+            per_output[key] = power
+            group = output.isolation_group or "main"
+            per_group[group] = per_group.get(group, 0.0) + power
+        rows.append(
+            ScenarioPowerRow(
+                scenario=scenario.name,
+                bus_v=scenario.bus_v,
+                load_fraction=scenario.load_fraction,
+                output_power_w=per_output,
+                group_power_w=per_group,
+                total_power_w=sum(per_output.values()),
+            )
+        )
+    return rows

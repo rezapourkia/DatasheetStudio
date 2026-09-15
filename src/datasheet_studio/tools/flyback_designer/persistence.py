@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .engine import ComponentSpec, CoreSpec, FlybackProject, OutputSpec
+from .engine import ComponentSpec, CoreSpec, FlybackProject, OutputSpec, ScenarioSpec
 
 
 SCHEMA_VERSION = 1
@@ -49,8 +49,18 @@ def bundle_from_dict(
         outputs_data = project_data.pop("outputs")
         if not isinstance(outputs_data, list):
             raise FlybackProjectFileError("فهرست خروجی‌ها معتبر نیست.")
+        scenarios_data = project_data.pop("scenarios", None)
+        if scenarios_data is not None and not isinstance(scenarios_data, list):
+            raise FlybackProjectFileError("فهرست سناریوها معتبر نیست.")
+        # A missing (v1) scenarios key keeps the default min/nom/max matrix.
+        project_kwargs = dict(project_data)
+        if scenarios_data is not None:
+            project_kwargs["scenarios"] = [
+                ScenarioSpec(**dict(_mapping(item, "scenario")))
+                for item in scenarios_data
+            ]
         project = FlybackProject(
-            **project_data,
+            **project_kwargs,
             outputs=[OutputSpec(**dict(_mapping(item, "output"))) for item in outputs_data],
         )
         core = CoreSpec(**dict(_mapping(data.get("core"), "core")))
