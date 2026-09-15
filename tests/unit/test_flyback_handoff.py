@@ -125,7 +125,7 @@ def test_handoff_prefill_and_banner_from_profile(qapp_instance):
     assert captured["prefill"]["current_limit_a"] == 1.1
     assert captured["prefill"]["ic_id"] == "DK124"
     assert "DK124" in captured["meta"]["manufacturer"] + captured["meta"]["part_number"]
-    assert "پذیرفته‌شده" in captured["meta"]["status"]
+    assert "پیش‌پر فقط با مقادیر پذیرفته‌شده" in captured["meta"]["status"]
 
 
 def test_unreviewed_profile_is_flagled_not_silent(qapp_instance):
@@ -148,8 +148,10 @@ def test_unreviewed_profile_is_flagled_not_silent(qapp_instance):
         )
     finally:
         dialog_module.FlybackDesignerDialog = original
-    assert "بررسی‌نشده" in captured["meta"]["status"]
-    assert captured["meta"]["unknowns"]  # missing required field listed
+    # Review-corrected banner: no blanket claim; zero accepted of three required
+    assert "0 از 3" in captured["meta"]["status"]
+    assert captured["meta"]["required_fields"]  # per-field states listed
+    assert captured["meta"]["suggestions"]  # extracted values surfaced, not applied
 
 
 def test_dialog_banner_and_prefill_reach_spins(qapp_instance):
