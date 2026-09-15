@@ -12,35 +12,58 @@
 
 **Active phase:** Phase 12 — `REVIEW`; corrective work required before Phase 13
 
-## Current Result
+## Current Result — Review Corrections Applied (2026-09-15)
 
-Phases 1–12 have focused commits with AI trailers and work-log entries. ZCode
-recorded a full regression of **327 passed in 67.01 s** at Phase 12. This review
-did not rerun that current suite at the owner's request to conserve Codex usage;
-the result is therefore ZCode's recorded evidence, not an independent rerun.
+Owner instruction: apply `docs/REVIEW_FINDINGS.md` corrections in order,
+test-first, without starting Phase 13. All fixes are TDD (tests were RED on
+the pre-fix code) and each was committed separately; the per-item status
+table with test evidence lives in `docs/REVIEW_FINDINGS.md` §Correction
+Status.
 
-The branch was clean and synchronized with
-`origin/feature/datasheet-to-design-v2` at review start. The newest functional
-slice provides typed exact core/material/bobbin pack records, offline vault
-storage/rollback, pack diffing, and Flyback selection from installed packs. No
-real manufacturer pack or end-user pack installer/updater is present yet.
+**Fixed and tested (red → green):**
+
+1. **P0 — Flyback prefill safety** (`7b94a2e`): automatic prefill uses only
+   reviewed/verified `engine_view()` values; extracted values surface as
+   inactive suggestions requiring explicit user action; the banner reports
+   per-required-field states, never a whole-profile acceptance claim.
+2. **P1 — Phase-4 atomic acceptance & close safety** (`91b5f3d`):
+   `mark_accepted()` runs BEFORE `knowledgeBasePath` is published (a
+   failure publishes nothing — failure-injection tested); the upgrade
+   dialog refuses close while the worker runs and closes after cancel.
+3. **P1 — Phase-9 complete-document extraction** (`52f7ccf`): 40-page/4k
+   caps removed; coverage-led chunked extraction over ALL ledger-complete
+   pages; deterministic merge with recorded contradictions; per-chunk
+   request/response + merge.md + metadata.json archived under
+   `ai-runs/<run-id>/chunks/…`; unaccounted pages are reported and block
+   any "complete" claim; the dialog shows them.
+4. **P1 — Phase-12 validation & no-CLI management** (`1e8cc94`): provenance
+   (source hash + page) required on every record; duplicate codes, partial/
+   non-positive loss coefficients, and invalid gap options rejected; pack
+   ordering by import timestamp (not lexicographic; 9-vs-10 tested); new
+   Persian RTL pack manager (**Tools → Knowledge Base → مدیر کاتالوگ
+   مغناطیسی…**) with open/validate/preview-diff/install/rollback, zero CLI.
+5. **P2 — Phase-11 terminology**: docs/contract now say "64-output-capable"
+   and list the missing rail/scenario editors as an OPEN item.
+
+Full regression after all corrections: **345 passed in 73.23 s**; compile
+check passed.
+
+**NOT done (remaining — do not claim otherwise):**
+
+- Phase 12: a real downloaded manufacturer pack with exact ordering codes
+  and per-field URL/licensing provenance — the TDK data in tests is a
+  fixture. Phase 12 remains at `REVIEW`.
+- Phase 11: rail/scenario editors (isolation group, load range, priority,
+  rectifier/capacitor references, feedback participation, scenario editing)
+  are domain-only; the multi-output desktop workflow is not yet usable.
+- Phase 13 has NOT been started (owner instruction).
+- Inherited open gates: owner's real-library migration/vault flows, real
+  DigiKey credentials, and a real-provider AI extraction run.
 
 ## Mandatory Review Findings
 
-Read `docs/REVIEW_FINDINGS.md` before any implementation. Key blockers:
-
-1. **P0:** Flyback currently falls back to raw extracted profile fields and can
-   prefill calculations with unreviewed AI values. Automatic prefill must use
-   reviewed/verified values only.
-2. **P1:** Phase-9 extraction silently limits context to 40 pages × 4,000
-   characters, so it is not complete-datasheet extraction.
-3. **P1:** Phase 12 is a catalogue framework only: no real official pack,
-   no normal in-app install/update path, and provenance/uniqueness/curve
-   validation gaps remain.
-4. **P1:** Phase-4 acceptance publishes QSettings before the vault is marked
-   accepted, and close-during-migration lacks a cancel/wait lifecycle.
-5. **P2:** Phase 11 supports at most 64 outputs and does not yet expose the new
-   isolation/load/priority/feedback/scenario fields in the desktop editor.
+See `docs/REVIEW_FINDINGS.md` — including the appended §Correction Status
+table mapping every item to its commit and tests.
 
 ## What ZCode Did Well
 
@@ -57,11 +80,11 @@ Read `docs/REVIEW_FINDINGS.md` before any implementation. Key blockers:
 
 ## Next Permitted Action for ZCode
 
-Do **not** begin Phase 13. Follow the ordered correction sequence in
-`docs/REVIEW_FINDINGS.md`, starting with the Phase-10 P0 safety issue. Each
-correction gets its own tests, Markdown update, attributed commit, and push.
-After the corrections and a real Phase-12 pack/UI review, stop for owner
-acceptance before transformer-feasibility work.
+None automatically. The owner reviews this correction pass and decides the
+next slice: (a) bind a real manufacturer magnetics pack (source, codes,
+licensing) to close the Phase-12 gate; (b) build the Phase-11 rail/scenario
+editors; or (c) accept and start Phase 13 explicitly. Phase 13 must not
+begin without owner acceptance.
 
 ## Required Reading
 
