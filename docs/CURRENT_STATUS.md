@@ -1,13 +1,13 @@
 # Datasheet Studio — Current Project Status
 
 **Last updated:** 2026-09-15
-**Project status:** Desktop PDF/library/AI workspace and native Flyback Designer v1 are working; the broader datasheet-to-design product direction is now specified but not yet implemented
-**Current branch:** `main`
+**Project status:** Desktop PDF/library/AI workspace, Flyback Designer v1, knowledge-base v2 foundation, and Phase-5 local/mock bottom search are implemented
+**Current branch:** `feature/datasheet-to-design-v2`
 **Primary development environment:** Windows + VS Code + Python virtual environment
 
-> The authoritative newest implementation record is section 15. Earlier
+> The authoritative newest implementation record is section 19. Earlier
 > module-baseline paragraphs are retained as project history and may describe
-> the state before the later feature passes recorded in sections 11, 13, and 15.
+> the state before the later feature passes recorded in sections 11 and 13–19.
 
 ---
 
@@ -953,3 +953,34 @@ offscreen with QSettings cleanup). Compile check and offscreen startup smoke
 passed. Not verified: real-worker-thread cancellation inside a visible
 desktop session and a migration of the owner's real library (that is the
 Phase 4 review gate).
+
+---
+
+## 19. Phase 5 — Bottom Search Strip UX Shell — 2026-09-15
+
+Implemented per `docs/modules/BOTTOM_SEARCH_STRIP.md`, continuing the initial
+module contract authored by ZCode:
+
+- A thin Persian RTL search bar now sits below the unchanged four-panel
+  splitter and above the status bar. `Ctrl+K` expands it and targets the query
+  workflow; collapsing restores the workspace height.
+- Source filters cover all, accepted local v2 knowledge vault, and deterministic
+  mock-online data. Phase 5 contains no real network request.
+- The local provider searches documents, component profiles, magnetics,
+  evidence fields, and page text through the Phase-3 SQLite/FTS index. Results
+  with a source object resolve the content-addressed PDF and matched page for
+  opening in the existing viewer.
+- Hint, searching, results, no-results, no-vault, and provider-error states are
+  explicit. Searches run in QThreads; generation IDs discard stale responses;
+  provider failures remain isolated.
+- Copy Link/Path works. Online preview and Save to Library are visible but
+  disabled with Phase-6 explanations.
+- The deploy manifest includes the new service and widget modules.
+
+Verification: focused Phase-5/index/main-window suite **48 passed**; additional
+thread/stale-result focus **28 passed**; full regression **236 passed in
+65.12 s**; compile check passed. A visible Windows run confirmed collapsed and
+expanded layout, Ctrl+K, RTL order, and that the four-panel workspace remains
+usable. Not verified: the owner's real migrated vault, packaged executable,
+DPI variants, or any real provider/download/save flow. Phase 5 is at the owner
+review gate; Phase 6 must not start without acceptance.

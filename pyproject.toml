@@ -61,6 +61,7 @@ files = [
     "src/datasheet_studio/services/library_service.py",
     "src/datasheet_studio/services/manufacturer_detector.py",
     "src/datasheet_studio/services/selection_storage.py",
+    "src/datasheet_studio/services/search_service.py",
     "src/datasheet_studio/tools/__init__.py",
     "src/datasheet_studio/tools/registry.py",
     "src/datasheet_studio/tools/symbol_creator_tool.py",
@@ -85,4 +86,5 @@ files = [
     "src/datasheet_studio/ui/widgets/note_overlay.py",
     "src/datasheet_studio/ui/widgets/pdf_scroll_area.py",
     "src/datasheet_studio/ui/widgets/selected_page_item.py",
+    "src/datasheet_studio/ui/widgets/search_strip.py",
 ]

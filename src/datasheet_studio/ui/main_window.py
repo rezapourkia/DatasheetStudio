@@ -11,6 +11,7 @@ from PySide6.QtCore import QObject, QSettings, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
+    QDockWidget,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -51,6 +52,7 @@ from datasheet_studio.ui.widgets.pdf_scroll_area import PdfScrollArea
 from datasheet_studio.ui.markdown_render import html_escape, markdown_to_html
 from datasheet_studio.ui.widgets.note_overlay import NoteOverlayWidget
 from datasheet_studio.ui.widgets.note_editor import NoteEditorDialog
+from datasheet_studio.ui.widgets.search_strip import SearchStrip
 from datasheet_studio.models.pdf_document import PdfNote
 from datasheet_studio.services.ai_service import AIService
 from datasheet_studio.services.library_service import LibraryService
@@ -249,6 +251,13 @@ class MainWindow(QMainWindow):
         self._library_panel.refresh()
         self._log.info("Restored library on startup: %s", folder)
 
+    def closeEvent(self, event) -> None:
+        """Finish bounded local search work before Qt destroys its threads."""
+
+        if hasattr(self, "_search_strip"):
+            self._search_strip.shutdown()
+        super().closeEvent(event)
+
     # ------------------------------------------------------------------
     # Central layout
     # ------------------------------------------------------------------
@@ -267,6 +276,34 @@ class MainWindow(QMainWindow):
         splitter.setSizes(DEFAULT_PANEL_SIZES)
 
         self.setCentralWidget(splitter)
+        self._workspace_splitter = splitter
+        self._create_bottom_search_strip()
+
+    def _create_bottom_search_strip(self) -> None:
+        """Dock the Phase-5 search entry point below the workspace splitter."""
+
+        self._search_strip = SearchStrip(
+            vault_path_getter=lambda: str(
+                self._settings.value("knowledgeBasePath", "") or ""
+            ),
+            parent=self,
+        )
+        self._search_strip.open_requested.connect(self._open_search_result)
+        self._search_strip.expanded_changed.connect(self._resize_search_dock)
+
+        dock = QDockWidget(self)
+        dock.setObjectName("bottomSearchDock")
+        dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
+        dock.setTitleBarWidget(QWidget(dock))
+        dock.setWidget(self._search_strip)
+        self._search_dock = dock
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        self._resize_search_dock(False)
+
+    @Slot(bool)
+    def _resize_search_dock(self, expanded: bool) -> None:
+        self._search_dock.setFixedHeight(270 if expanded else 42)
 
     # ------------------------------------------------------------------
     # Panel: bookmarks / library (left)
@@ -1495,6 +1532,13 @@ class MainWindow(QMainWindow):
         reset_action.setEnabled(False)
         reset_action.setStatusTip("Reset the workspace layout (not yet implemented)")
 
+        search_strip_action = view_menu.addAction("جست‌وجوی دیتاشیت‌ها")
+        search_strip_action.setShortcut("Ctrl+K")
+        search_strip_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+        search_strip_action.setStatusTip("باز کردن نوار جست‌وجوی پایین")
+        search_strip_action.triggered.connect(self._search_strip.toggle_and_focus)
+        self._search_strip_action = search_strip_action
+
         # Tools menu
         self._tools_menu = menu_bar.addMenu("&Tools")
         tools_menu = self._tools_menu
@@ -2708,6 +2752,20 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Opened from library: {info.path}")
         self._log.info("Opened library document: %s", info.path)
         self._render_page(self._current_page)
+
+    @Slot(str, int)
+    def _open_search_result(self, path: str, page: int) -> None:
+        """Open a local knowledge-base PDF and navigate to its matched page."""
+
+        self._open_library_item(path)
+        if self._pdf_info is None:
+            return
+        if os.path.normcase(os.path.abspath(self._pdf_info.path)) != os.path.normcase(
+            os.path.abspath(path)
+        ):
+            return
+        target = max(1, min(int(page), self._pdf_info.page_count))
+        self._navigate_to_page(target)
 
     def _open_summary_file(self, path: str) -> None:
         """Show a stored Markdown summary in a dialog."""

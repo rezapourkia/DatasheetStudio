@@ -670,6 +670,7 @@ class KnowledgeIndex:
         order = "ORDER BY bm25(fts_docs), d.id" if match else "ORDER BY d.id"
         sql = (
             "SELECT d.id, d.manufacturer, d.part_number, d.revision, d.title,"
+            " d.object_sha256,"
             " snippet(fts_docs, 0, '«', '»', ' …', 12), bm25(fts_docs)"
             " FROM fts_docs JOIN documents d ON d.id = fts_docs.rowid"
             + self._where(clauses)
@@ -685,10 +686,14 @@ class KnowledgeIndex:
                 title=title or f"{maker} {part}",
                 subtitle=f"{maker} · {part} · سند {revision}",
                 snippet=snippet or "",
-                ref={"record_kind": "document-revision", "id": doc_id},
+                ref={
+                    "record_kind": "document-revision",
+                    "id": doc_id,
+                    "source_hash": source_hash,
+                },
                 rank=float(rank),
             )
-            for doc_id, maker, part, revision, title, snippet, rank in rows
+            for doc_id, maker, part, revision, title, source_hash, snippet, rank in rows
         ]
 
     def _search_components(self, match: str | None, filters: dict[str, str], limit: int) -> list[SearchHit]:
@@ -703,6 +708,7 @@ class KnowledgeIndex:
         order = "ORDER BY bm25(fts_components), c.id" if match else "ORDER BY c.manufacturer, c.part_number, c.id"
         sql = (
             "SELECT c.id, c.manufacturer, c.part_number, c.profile_version,"
+            " c.source_object_sha256,"
             " snippet(fts_components, 0, '«', '»', ' …', 12), bm25(fts_components)"
             " FROM fts_components JOIN components c ON c.id = fts_components.rowid"
             + self._where(clauses)
@@ -718,10 +724,14 @@ class KnowledgeIndex:
                 title=f"{maker} {part}",
                 subtitle=f"پروفایل {version}",
                 snippet=snippet or "",
-                ref={"record_kind": "component-profile", "id": cid},
+                ref={
+                    "record_kind": "component-profile",
+                    "id": cid,
+                    "source_hash": source_hash,
+                },
                 rank=float(rank),
             )
-            for cid, maker, part, version, snippet, rank in rows
+            for cid, maker, part, version, source_hash, snippet, rank in rows
         ]
 
     def _search_magnetics(self, match: str | None, filters: dict[str, str], limit: int) -> list[SearchHit]:
@@ -777,7 +787,7 @@ class KnowledgeIndex:
         order = "ORDER BY bm25(fts_fields), fl.id" if match else "ORDER BY fl.id"
         sql = (
             "SELECT fl.id, fl.owner_table, fl.owner_id, fl.name, fl.unit, fl.value_num,"
-            " fl.value_text, fl.review_state,"
+            " fl.value_text, fl.review_state, fl.source_hash, fl.page,"
             " snippet(fts_fields, 0, '«', '»', ' …', 10), bm25(fts_fields)"
             " FROM fts_fields JOIN fields fl ON fl.id = fts_fields.rowid"
             + self._where(clauses)
@@ -791,7 +801,7 @@ class KnowledgeIndex:
         for row in rows:
             (
                 fid, owner_table, owner_id, name, unit, value_num,
-                value_text, review_state, snippet, rank,
+                value_text, review_state, source_hash, page, snippet, rank,
             ) = row
             owner_title, owner_sub = _field_owner_title(self._conn, owner_table, owner_id)
             value_repr = (
@@ -810,6 +820,8 @@ class KnowledgeIndex:
                         "field_id": fid,
                         "owner_table": owner_table,
                         "owner_id": owner_id,
+                        "source_hash": source_hash,
+                        "page": page,
                     },
                     rank=float(rank),
                 )

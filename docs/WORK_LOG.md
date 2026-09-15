@@ -188,3 +188,35 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Handoff: owner runs **Library → Upgrade Library to v2** on a copy of a real
   library and reviews preview/report/accept/rollback; Phase 5 (bottom search
   strip UX shell) starts only after acceptance.
+
+## 2026-09-15 — Phase 5 — Bottom local/mock search strip implemented
+
+- Contributor: ZCode (Z.ai, GLM) for the initial uncommitted module contract;
+  OpenAI Codex for contract review, implementation, tests, documentation, and
+  visual verification
+- Role: documentation-first handoff, implementation, test, and review
+- Requested by: project owner, who explicitly asked OpenAI Codex to continue
+  after Z.AI reached its account limit
+- Scope: Phase 5 only — Persian RTL bottom search UX, accepted local-v2-vault
+  adapter, deterministic mock source, states/actions/threading, and main-window
+  integration. No real network, download, validation, or save-to-library.
+- Changed: added `services/search_service.py`,
+  `ui/widgets/search_strip.py`, `test_search_service.py`, and
+  `test_search_strip.py`; extended Phase-3 search-hit references with source
+  hash/page for PDF resolution; integrated a bottom dock and Ctrl+K in
+  `main_window.py`; updated the deploy file list and phase/status/handoff docs.
+- Verification: independently re-ran the incoming baseline (**227 passed**);
+  focused Phase-5/index/main-window suite **48 passed**; focused lifecycle/stale
+  checks **28 passed**; full regression **236 passed in 65.12 s**; compileall
+  passed. Visible Windows inspection confirmed collapsed/expanded sizing,
+  Ctrl+K, RTL placement, and unchanged four-panel workspace.
+- Issues found and fixed: PySide6 could abort across repeated searches with the
+  initial `QObject.moveToThread/deleteLater` lifecycle; replaced it with a
+  bounded QThread object and shutdown wait, then added stale-result coverage.
+- Not verified: result opening against the owner's real migrated vault,
+  packaged executable/DPI variants, real online providers, download, or save.
+  Windows accessibility exposed the old disabled AI editor as focused despite
+  the visually focused query field, so UI-automation typing is not claimed.
+- Commit: this commit
+- Handoff: stop at Phase 5 `REVIEW`; owner approves/corrects the search layout
+  before Phase 6 connects an official online source.

@@ -130,8 +130,8 @@ only location of a requirement, decision, test result, or unfinished action.
 | 1 | Stabilize and preserve current baseline | `ACCEPTED` | Existing native Flyback v1/tool registry changes tested and pushed separately |
 | 2 | Knowledge-base domain and schema | `ACCEPTED` | Versioned records, hashes, provenance, revisions, and validation without UI migration |
 | 3 | Rebuildable SQLite/FTS index | `ACCEPTED` | Fast metadata/full-text index that can be deleted and rebuilt safely |
-| 4 | Safe Library v1 → v2 desktop upgrade | `REVIEW` | Preview, backup, import, rollback, and no-delete migration UI |
-| 5 | Bottom search strip UX shell | `PLANNED` | Collapsible bottom search using mock/local adapter data for UX approval |
+| 4 | Safe Library v1 → v2 desktop upgrade | `ACCEPTED` | Preview, backup, import, rollback, and no-delete migration UI |
+| 5 | Bottom search strip UX shell | `REVIEW` | Collapsible bottom search using mock/local adapter data for UX approval |
 | 6 | Online source adapter framework | `PLANNED` | Provider-independent search, normalized results, safe download, first official adapter |
 | 7 | Complete document text/OCR coverage | `PLANNED` | Page coverage ledger and pluggable OCR boundary |
 | 8 | Controller profile and evidence schema | `PLANNED` | Strict reusable IC profile with field-level citations and review states |
@@ -590,12 +590,13 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 3 was accepted by the owner (2026-09-15). Phase 4 (safe Library v1 → v2
-desktop upgrade) is implemented, tested, and pushed; it is awaiting the owner
-review gate: the owner should run the upgrade on a **copy of a real library**
-via **Library → Upgrade Library to v2 (Knowledge Base)...** (see
-`docs/modules/LIBRARY_UPGRADE.md`). Recorded verification: full regression
-**227 passed in 64.98 s** (21 new vault/migration/dialog tests), compile
-check and offscreen startup smoke passed. Migration is not offered as final
-until that manual review is accepted. Do not begin Phase 5 until the owner
-accepts the Phase 4 review.
+The owner allowed continuation after ZCode reached its account limit, which
+accepts Phase 4 for plan sequencing while retaining its documented real-library
+review limitations. Phase 5 is implemented and at `REVIEW`: the main window now
+has a Persian RTL bottom search strip backed by the accepted local v2 vault and
+a deterministic no-network mock provider. Recorded verification: focused
+Phase-5 regressions passed and the full suite is **236 passed in 65.12 s**;
+`compileall` passed; a visible Windows run confirmed the collapsed/expanded
+layout and Ctrl+K behavior. The owner should now review the daily-workflow UX.
+Do not begin Phase 6 or add real network/download/save behavior until the owner
+accepts this Phase 5 review gate.

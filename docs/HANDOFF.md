@@ -2,71 +2,77 @@
 
 **Updated:** 2026-09-15
 
-**Contributor:** ZCode (Z.ai, GLM)
+**Contributors:** ZCode (initial Phase 5 module contract); OpenAI Codex
+(review, implementation, tests, docs, and visual check)
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 4 — `REVIEW`
+**Active phase:** Phase 5 — `REVIEW`
 
 ## Completed Result
 
-Phases 1–3 were accepted by the owner. Phase 4 (safe Library v1 → v2 desktop
-upgrade) is implemented, tested, and pushed. **First visible UI change of the
-v2 effort:**
+Phase 5 adds the bottom datasheet-search UX without crossing into Phase 6:
 
-- **Library → Upgrade Library to v2 (Knowledge Base)...** opens the Persian
-  RTL upgrade dialog for the active v1 library.
-- Flow: preview → cancellable worker-thread run with progress → itemized
-  report (imported/duplicate/ambiguous/skipped/failed with reasons) →
-  explicit **final acceptance** (marks `library.toml accepted=true`, stores
-  `knowledgeBasePath` in QSettings) or **rollback** (deletes the v2 vault).
-- New modules: `infrastructure/storage/knowledge_vault.py` (v2 layout, TOML
-  identity, content-addressed objects, records + envelopes, migration
-  reports), `services/library_migration.py` (orchestration, duplicate/
-  ambiguous/skipped/failed semantics, cancel + cleanup), and
-  `ui/dialogs/library_upgrade_dialog.py`.
-- Safety rules honored and tested: v1 never modified (byte-identical after
-  migration), manifest backed up into the vault, partial vault removed on
-  cancel/error, rollback deletes only v2.
+- Persian RTL collapsed bar below the unchanged four-panel splitter; Ctrl+K
+  expands and targets the query workflow.
+- Local provider searches the accepted v2 vault selected by
+  `QSettings: knowledgeBasePath`; SQLite is opened and closed inside a worker
+  thread, and document/page/field hits resolve to their content-addressed PDF
+  and page where source evidence exists.
+- Deterministic `mock-online` rows exercise the future online-result layout but
+  perform no network access. Preview and Save remain disabled; Copy Link works.
+- Hint/searching/results/no-results/no-vault/error states, 350 ms debounce,
+  source filter, retry, stale-result generation guard, thread shutdown, and
+  provider-failure isolation are implemented and tested.
+- Existing **Library → Search Datasheets Online...** remains the fallback.
 
-Recorded verification: full regression **227 passed in 64.98 s** (21 new
-tests), compile check and offscreen startup smoke passed.
+## Verification Performed by OpenAI Codex
 
-## Working-Tree Warning
+- Incoming Phase-4 baseline: **227 passed in 66.62 s**.
+- Focused Phase-5/index/main-window regression: **48 passed**.
+- Focused thread lifecycle/stale-result suite: **28 passed**.
+- Full regression after implementation: **236 passed in 65.12 s**.
+- `python -m compileall -q src tests`: passed.
+- Visible Windows run: collapsed and expanded strip, Ctrl+K, RTL order, and
+  preservation of the four-panel workspace were inspected successfully.
 
-The working tree is expected to be clean except ignored local artifacts
-(`build/`, `dist/`, `dist-native/`, `nuitka-crash-report.xml`, test PDFs,
-`__pycache__`, `.venv`). Never commit those.
+## Working Tree
 
-## Current Permitted Action
+After the Phase-5 commit the tree should be clean except ignored local artifacts
+(`build/`, `dist/`, `dist-native/`, `.venv`, caches, crash reports, and local
+PDFs). Do not commit those. Preserve any later uncommitted owner/agent work.
 
-None automatically — Phase 4 sits at its owner review gate. The owner should
-run the upgrade on a **copy of a real library**: open the library
-(Library → Open Library Folder...), then **Library → Upgrade Library to v2
-(Knowledge Base)...**, and review preview, report, final acceptance, and
-rollback per `docs/modules/LIBRARY_UPGRADE.md`. After acceptance, the next
-phase is Phase 5 — the bottom search-strip UX shell. Do not start Phase 5
-before that.
+## Not Verified
 
-## Not Verified in Phase 4
+- Search/open against the owner's migrated real knowledge vault.
+- Packaged Nuitka executable and alternate DPI/scaling configurations.
+- Windows UI Automation text entry: Qt exposed the disabled AI editor as the
+  accessibility focus while the new query field visibly had focus. Qt widget
+  tests cover focusability, debounce, explicit search, and row actions.
+- No real network provider, download, validation, or Save to Library exists in
+  Phase 5; none is claimed tested.
+- Phase-4 real-library migration and visible cancellation limitations remain as
+  recorded in `docs/modules/LIBRARY_UPGRADE.md`.
 
-- Cancellation through the real worker thread in a visible desktop session
-  (tests call the migrator and dialog slots directly).
-- Migration of the owner's real library (that is the review gate).
-- The v2 vault is not yet browsable in the main window; that surface arrives
-  in Phase 5+.
+## Next Permitted Action
+
+Stop at the Phase 5 owner-review gate. The owner should try Ctrl+K, local/mock
+filters, collapse/expand behavior, and opening results from a migrated copy.
+Apply any requested corrections inside Phase 5. Begin Phase 6 only after the
+owner explicitly accepts this UX; Phase 6 must start with its own Markdown
+contract/update before adding network/download/save behavior.
 
 ## Required Reading for the Next Contributor
 
 1. `AGENTS.md` if present at the repository/workspace boundary
-2. `docs/HANDOFF.md` and `docs/DEVELOPMENT_PLAN.md`
-3. `docs/modules/LIBRARY_UPGRADE.md` (Phase 4 contract)
-4. `docs/modules/KNOWLEDGE_BASE_SCHEMA.md`, `KNOWLEDGE_INDEX.md`
-5. `docs/CURRENT_STATUS.md` (section 18 is the newest record)
-6. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (ADR-019)
+2. `docs/HANDOFF.md`, `docs/DEVELOPMENT_PLAN.md`, and `docs/PRODUCT_VISION.md`
+3. `docs/modules/BOTTOM_SEARCH_STRIP.md`
+4. `docs/modules/KNOWLEDGE_INDEX.md` and `KNOWLEDGE_BASE_SCHEMA.md`
+5. `docs/CURRENT_STATUS.md` section 19 and `docs/WORK_LOG.md`
+6. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`
 
 ## Verification Rule
 
-The next contributor must not claim the migration or full test suite is
-verified merely because this document says so. It must run the tests in the
-current checkout and record the actual result.
+Do not repeat the results above as current facts without rerunning the relevant
+checks in the new checkout. Do not infer contributor identity from Git author;
+use commit trailers and the append-only work log.
