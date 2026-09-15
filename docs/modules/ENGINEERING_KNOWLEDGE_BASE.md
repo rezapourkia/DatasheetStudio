@@ -1,6 +1,6 @@
 # Datasheet Studio — Engineering Knowledge Base
 
-**Status:** Planned architecture
+**Status:** Storage/search architecture planned; Phase 2 domain schema implemented (`docs/modules/KNOWLEDGE_BASE_SCHEMA.md`, `src/datasheet_studio/models/knowledge_base.py`)
 
 **Depends on:** Local Datasheet Library, PDF Service, AI Assistant
 

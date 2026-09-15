@@ -1,0 +1,21 @@
+{
+  "schema_version": 2,
+  "record_kind": "source-object",
+  "record": {
+    "sha256": "b3d226a41536cf9fb1715bb279f9a4f25c35acb05559a17dac5e6ffcb4859c4e",
+    "size_bytes": 486328,
+    "media_type": "application/pdf",
+    "original_filename": "DK124-datasheet.pdf",
+    "source_urls": [
+      "https://example.invalid/dk124.pdf"
+    ],
+    "aliases": [
+      {
+        "value": "DK124B",
+        "kind": "ordering-code",
+        "note": "نمونه؛ کد سفارش واقعی تأیید نشده"
+      }
+    ],
+    "imported_at": "2026-09-15T12:00:00+00:00"
+  }
+}

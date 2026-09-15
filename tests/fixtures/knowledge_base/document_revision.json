@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "record_kind": "document-revision",
+  "record": {
+    "manufacturer": "Linkage",
+    "part_number": "DK124",
+    "document_type": "datasheet",
+    "revision": "v1.6",
+    "object_sha256": "b3d226a41536cf9fb1715bb279f9a4f25c35acb05559a17dac5e6ffcb4859c4e",
+    "record_path": "records/datasheets/linkage/DK124/v1.6/record.md",
+    "title": "DK124 Offline Switching Power Supply IC",
+    "date": "2020-05",
+    "page_count": 3,
+    "aliases": [
+      {
+        "value": "DK124",
+        "kind": "part-number",
+        "note": ""
+      }
+    ],
+    "tags": [
+      "flyback",
+      "controller",
+      "switcher"
+    ],
+    "summary": "نمونهٔ رکورد بازبینی سند؛ داده‌ها صرفاً نمایشی و تأییدنشده‌اند.",
+    "fields": [
+      {
+        "name": "wide_input_power_w",
+        "value": 18,
+        "unit": "W",
+        "value_min": null,
+        "value_typ": null,
+        "value_max": null,
+        "conditions": "",
+        "provenance": {
+          "source_hash": "b3d226a41536cf9fb1715bb279f9a4f25c35acb05559a17dac5e6ffcb4859c4e",
+          "page": 1,
+          "table_or_figure": "Features",
+          "extractor_version": "phase2-example (manual fixture)",
+          "imported_at": "2026-09-15T12:00:00+00:00",
+          "confidence": 0.6
+        },
+        "review_state": "extracted",
+        "reviewed_by": "",
+        "reviewed_at": ""
+      }
+    ]
+  }
+}

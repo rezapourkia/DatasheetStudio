@@ -847,3 +847,36 @@ are now in `docs/PRODUCT_VISION.md`, with supporting contracts in:
 No current illustrative core/component record has been promoted to verified.
 The next implementation phase is Knowledge Base v2, as ordered in
 `docs/ROADMAP.md` section 17.
+
+---
+
+## 16. Phase 2 — Knowledge-Base Domain Schema — 2026-09-15
+
+Implemented the Phase 2 slice of the staged plan (see
+`docs/DEVELOPMENT_PLAN.md` and the module contract
+`docs/modules/KNOWLEDGE_BASE_SCHEMA.md`):
+
+- `src/datasheet_studio/models/knowledge_base.py`: validated, frozen domain
+  types — `SourceObject` (content-addressed, duplicate merge rules),
+  `DocumentRevision`, `ComponentProfile`, `MagneticsRecord`, `LibraryIdentity`,
+  plus `EvidenceField`/`Provenance` carrying source hash, page/table evidence,
+  extractor version, import time, confidence, and review state for every
+  engineering fact. Review states are enforced: AI/import can assign at most
+  `extracted`; `verified` requires reviewer and timestamp. Strict validation
+  rejects unknown keys, malformed hashes/dates/paths, bad numeric order, and
+  unsafe relative paths. Versioned envelope serialization
+  (`dump_record`/`load_record`) rejects unsupported schema versions instead of
+  silently converting.
+- `src/datasheet_studio/services/knowledge_hash.py`: streaming SHA-256 for
+  large PDFs (constant memory), and canonical record hashing for reproducible
+  equality across key order and platforms.
+- No UI change, no user file moves, no Qt/network dependency in the domain
+  module (verified by import scan and test imports).
+
+Example records for the owner review gate (explicitly unverified, placeholder
+source hashes): `docs/examples/knowledge_base/DK124_profile_example.md` and
+`docs/examples/knowledge_base/EE19_17_core_example.md`; machine fixtures live
+in `tests/fixtures/knowledge_base/` and are validated by the test suite.
+
+Verification: `compileall` passed; full regression **187 passed in 63.51 s**
+(143 previous + 44 new schema/hash tests).

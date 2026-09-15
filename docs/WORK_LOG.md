@@ -69,3 +69,41 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: stop at the Phase 1 review gate. Owner may install/run the baseline
   and request corrections before Phase 2 (Knowledge Base domain/schema).
+
+## 2026-09-15 — Phase 2 — Knowledge-base domain schema implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه بده" — acceptance of Phase 1 and
+  continuation to Phase 2)
+- Scope: Phase 2 only per `docs/DEVELOPMENT_PLAN.md` — domain types for
+  source objects, document revisions, aliases, provenance/evidence, component
+  profiles, review states, and library identity; canonical serialization and
+  validation; SHA-256 streaming hash service and duplicate identity rules. No
+  library UI change and no user file moves.
+- Changed: added `docs/modules/KNOWLEDGE_BASE_SCHEMA.md` (contract written
+  before code), `src/datasheet_studio/models/knowledge_base.py`,
+  `src/datasheet_studio/services/knowledge_hash.py`,
+  `tests/unit/test_knowledge_base_schema.py`,
+  `tests/unit/test_knowledge_hash.py`,
+  `tests/fixtures/knowledge_base/*.json`,
+  `docs/examples/knowledge_base/*.md` (owner-review examples), two entries in
+  the `pyproject.toml` deploy file list, and status updates in
+  `docs/DEVELOPMENT_PLAN.md`, `docs/CURRENT_STATUS.md` (new section 16),
+  `docs/modules/ENGINEERING_KNOWLEDGE_BASE.md` (status line), and this log.
+- Verification: 44 new unit tests pass (round-trip of every record type from
+  fixtures, invalid-schema rejection incl. unknown keys and `verified`
+  without reviewer, path-safety cases, duplicate merge, version-upgrade
+  rejection incl. a legacy v1 envelope, hash known-vectors and a ~5 MB
+  multi-chunk file, canonical-hash key-order stability); compile check
+  passed; full regression **187 passed in 63.51 s**; import scan confirms no
+  Qt/network dependency in the domain and hash modules. Two implementation
+  fixes were made after first test run (empty-note merge precedence in
+  `SourceObject.merged`; a malformed expectation inside the canonical-JSON
+  test itself).
+- Not verified: example records use placeholder source hashes and are not
+  bound to real DK124/EE17 documents; nothing here was exercised through the
+  desktop UI (by design — Phase 2 has no UI surface).
+- Commit: this commit
+- Handoff: owner reviews the DK124 and EE19/17 example records at the Phase 2
+  gate; Phase 3 (SQLite/FTS index) starts only after acceptance.
