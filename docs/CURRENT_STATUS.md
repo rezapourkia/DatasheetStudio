@@ -1129,3 +1129,21 @@ Implemented per `docs/modules/CONTROLLER_PROFILE_SCHEMA.md`:
 Verification: full regression **293 passed in 68.24 s** (16 new tests).
 Not verified: AI extraction (Phase 9), Flyback consumption (Phase 10+), and
 the owner's approval of the field set/form (review gate).
+
+---
+
+## 23. Phase 9 — AI Extraction Artifacts and Review UI — 2026-09-15
+
+Implemented per `docs/modules/AI_EXTRACTION_ARTIFACTS.md`: versioned prompt
+(`prompts/controller_extraction_v1.md`), page-aware user-message builder,
+strict response validation (invalid JSON, truncation, unknown fields, wrong
+units, bad page citations → structured issues), consent-gated review dialog
+(**Tools → Knowledge Base → استخراج پروفایل با AI…**) with cancel/retry and
+a per-field accept diff, acceptance-only profile creation (every field saved
+as `extracted` with `ai:<prompt>:<run>` provenance — the Phase 8 AI cap
+applies), run archiving under the vault (`ai-runs/<run-id>/`), and offline
+reuse of saved profiles through the Phase 8 form/index.
+
+Verification: full regression **304 passed in 68.22 s** (11 new tests).
+Not verified: a real provider run (needs configured AI + owner consent —
+review gate).

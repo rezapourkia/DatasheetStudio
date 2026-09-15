@@ -6,13 +6,11 @@
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 8 — `REVIEW`
+**Active phase:** Phase 9 — `REVIEW`
 
 ## Completed Result
 
-Phases 1–7 were accepted. Phase 8 (controller profile and evidence schema)
-is implemented, tested, and pushed per
-`docs/modules/CONTROLLER_PROFILE_SCHEMA.md`:
+Phases 1–7 were accepted. Phase 8 (controller profile schema) and Phase 9 (AI extraction artifacts + review UI) are implemented, tested, and pushed per their contracts:
 
 - `models/controller_profile.py` — strict field registry (~27 fields with
   units/ranges/enums; required: frequency_khz, current_limit_a,

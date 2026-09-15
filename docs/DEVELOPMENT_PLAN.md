@@ -134,8 +134,8 @@ only location of a requirement, decision, test result, or unfinished action.
 | 5 | Bottom search strip UX shell | `ACCEPTED` | Collapsible bottom search using mock/local adapter data for UX approval |
 | 6 | Online source adapter framework | `ACCEPTED` | Provider-independent search, normalized results, safe download, first official adapter |
 | 7 | Complete document text/OCR coverage | `ACCEPTED` | Page coverage ledger and pluggable OCR boundary |
-| 8 | Controller profile and evidence schema | `REVIEW` | Strict reusable IC profile with field-level citations and review states |
-| 9 | AI extraction artifacts and review UI | `PLANNED` | Versioned MD prompt, validated response, diff/review/accept flow |
+| 8 | Controller profile and evidence schema | `ACCEPTED` | Strict reusable IC profile with field-level citations and review states |
+| 9 | AI extraction artifacts and review UI | `REVIEW` | Versioned MD prompt, validated response, diff/review/accept flow |
 | 10 | Current-datasheet handoff to Flyback | `PLANNED` | Open PDF/profile becomes explicit Flyback project context |
 | 11 | Flyback domain v2 outputs and scenarios | `PLANNED` | Unbounded domain outputs, isolation groups, load/tolerance scenario matrix |
 | 12 | Real magnetics catalogue foundation | `PLANNED` | Exact core/material/bobbin records, source packs, cache/update UI |
@@ -590,14 +590,13 @@ changes, commit the plan correction separately, and push it before continuing.
 
 ## 8. Current Action
 
-Phase 7 was accepted by the owner (2026-09-15). Phase 8 (controller profile
-and evidence schema) is implemented, tested, and pushed; it is awaiting the
-owner review gate: approve the editable Persian profile form and the field
-set via **Tools → Knowledge Base → پروفایل کنترلر…**
-(`docs/modules/CONTROLLER_PROFILE_SCHEMA.md`). Recorded verification: full
-regression **293 passed in 68.24 s** (16 new tests: complete/partial/
-contradictory fixtures, wrong-unit/wrong-page/unsupported-mode/out-of-range
-rejection, the AI reviewed/verified cap, envelope round-trip, vault storage
-+ index searchability, and offscreen form tests). Do not begin Phase 9
-(AI extraction artifacts and review UI) until the owner accepts the field
-set and form.
+Phase 8 was accepted by the owner (2026-09-15). Phase 9 (AI extraction
+artifacts and review UI) is implemented, tested, and pushed per
+`docs/modules/AI_EXTRACTION_ARTIFACTS.md`; it is awaiting the owner review
+gate: one end-to-end real controller extraction via **Tools → Knowledge
+Base → استخراج پروفایل با AI…** with a configured AI provider. Recorded
+verification: full regression **304 passed in 68.22 s** (11 new tests:
+invalid JSON/truncation/missing-unit/bad-citation/unknown-field handling,
+pre-send cancellation, provider-failure wrapping, acceptance gating with
+the extracted-only cap, vault storage + offline reload, run archiving).
+Do not begin Phase 10 until the owner accepts the Phase 9 review.

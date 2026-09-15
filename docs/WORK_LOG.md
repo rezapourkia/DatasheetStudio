@@ -354,3 +354,23 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: owner reviews the form and field set at the Phase 8 gate; Phase 9
   (AI extraction artifacts and review UI) starts only after acceptance.
+
+## 2026-09-15 — Phase 9 — AI extraction artifacts and review UI implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه بده" — Phase 8 acceptance)
+- Scope: Phase 9 only per `docs/DEVELOPMENT_PLAN.md`.
+- Changed: `docs/modules/AI_EXTRACTION_ARTIFACTS.md` (contract),
+  `prompts/controller_extraction_v1.md`,
+  `services/controller_extraction.py`,
+  `ui/dialogs/ai_extraction_review_dialog.py`, `tools/ai_extraction_tool.py`
+  (registered), `pyproject.toml` deploy entries,
+  `tests/unit/test_controller_extraction.py`, status docs.
+- Verification: 11 new tests; full regression **304 passed in 68.22 s**;
+  compile + smoke passed.
+- Not verified: real provider execution (owner gate), diff-vs-existing
+  profile (next refinement).
+- Commit: this commit
+- Handoff: owner runs one end-to-end real extraction at the Phase 9 gate;
+  Phase 10 (current-datasheet handoff to Flyback) starts after acceptance.

@@ -58,6 +58,7 @@ def test_main_window_builds_tools_menu_from_registry(qapp_instance):
         # Registry order = category alphabetical: CAD, Knowledge Base, Power Design
         assert [tool.id for tool in window._tool_registry.list_tools()] == [
             "symbol-creator",
+            "ai-profile-extraction",
             "controller-profile",
             "document-text-coverage",
             "flyback-designer",
