@@ -1027,3 +1027,35 @@ Not verified: **the real DigiKey integration** (no valid credentials were
 available — everything network-related runs through the mocked transport).
 The owner must exercise **تست اتصال** with real credentials before this is
 called tested. Browser fallback remains available.
+
+---
+
+## 20. Phase 6 Correction — Embedded Chromium Browser (Owner Direction) — 2026-09-15
+
+The owner clarified the desired online-search UX: a Chrome-like browser
+**inside** Datasheet Studio (Google search → open PDF from result links →
+save to library) instead of the system-browser round trip. Recorded as
+ADR-021 and implemented as an in-phase correction of Phase 6:
+
+- `ui/dialogs/datasheet_browser.py` rewritten: Persian RTL Chromium dialog
+  (QtWebEngine) with back/forward/reload, address bar (free text → web
+  search), engine selector (Google default, DuckDuckGo, Bing), quick links,
+  and an optional explicit system-browser button. Web search can be launched
+  with an initial query.
+- Downloaded files are listed with per-row actions: **باز کردن در نمایشگر**
+  (opens the PDF in the Datasheet Studio viewer) and **افزودن به کتابخانه**
+  (validates %PDF + SHA-256, saves into the accepted v2 vault with duplicate
+  resolution and immediate local-search visibility; legacy v1 flow when no
+  vault is active). Non-PDF downloads are marked as not savable.
+- The bottom strip gained the **«وب — مرورگر داخلی»** source: searching with
+  it opens the embedded browser on the web results for the query (no result
+  rows). **Library → Search Datasheets Online...** opens the same dialog.
+  API adapters (DigiKey) remain available in parallel.
+- ADR-017 scope is untouched: the Flyback Designer still has no WebView.
+
+Verification: 5 new offline tests (engine URL builders incl. fallback,
+%PDF detection, download-row wiring, v1 fallback, real vault save path with
+immediate searchability); full regression **263 passed in 69.98 s**; compile
+check and offscreen startup smoke (web source listed in the strip combo).
+Not verified in a visible desktop session here: actual Google rendering and
+a real download inside the embedded browser (owner gate).

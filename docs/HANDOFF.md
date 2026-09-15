@@ -6,7 +6,7 @@
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 6 — `REVIEW`
+**Active phase:** Phase 6 — `REVIEW` (owner-directed correction applied: embedded browser)
 
 ## Completed Result
 
@@ -52,11 +52,23 @@ those. Preserve any later uncommitted owner/agent work.
 - The owner's real migrated vault flows (open Phase 4/5 review items:
   real-library migration, real-vault search) remain unexercised.
 
+## Owner-Directed Correction (2026-09-15)
+
+The owner clarified that online search must happen **inside** the app
+(ADR-021). Shipped in this correction: the embedded Chromium browser dialog
+was rewritten (Google/DuckDuckGo/Bing search, back/forward/reload, validated
+downloads savable straight into the v2 vault and openable in the Datasheet
+Studio viewer), the bottom strip gained the «وب — مرورگر داخلی» source that
+opens it on the query, and **Library → Search Datasheets Online...** opens
+the same dialog. The system browser is only an explicit optional button now.
+
 ## Next Permitted Action
 
-Stop at the Phase 6 owner-review gate. The owner should exercise DigiKey
-with real credentials (**Library → Online Sources Settings… → تست اتصال**),
-judge result usefulness, and try the preview/save flow in the bottom strip.
+Stop at the Phase 6 owner-review gate. The owner should (1) try the embedded browser end-to-end — strip «وب»
+source or **Library → Search Datasheets Online...** → Google search → open
+a PDF → save it into the library, all inside the app — and (2) optionally
+exercise DigiKey with real credentials (**Library → Online Sources
+Settings… → تست اتصال**). Corrections stay within Phase 6.
 After acceptance, the next phase is Phase 7 — complete document text/OCR
 coverage — starting with its own Markdown contract. Do not start Phase 7
 before that.

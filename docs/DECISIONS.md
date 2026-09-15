@@ -59,6 +59,7 @@ New important decisions must be added here rather than being kept only in chat m
 | ADR-018 | Treat Datasheet Studio as a Datasheet-to-Design Workspace | Accepted | 2026-09-15 |
 | ADR-019 | Use a Portable File Vault with a Rebuildable SQLite Index | Accepted | 2026-09-15 |
 | ADR-020 | Keep AI Evidenced and Advisory Around Deterministic Engines | Accepted | 2026-09-15 |
+| ADR-021 | Embed a Chromium Browser for Online Datasheet Search | Accepted | 2026-09-15 |
 
 ---
 
@@ -768,6 +769,53 @@ before AI proposals change design inputs or review states.
 - Designs remain calculable offline and independent of chat history.
 - AI runs become auditable project artifacts.
 - Complete extraction requires explicit page coverage and failure reporting.
+
+## ADR-021 — Embed a Chromium Browser for Online Datasheet Search
+
+**Status:** Accepted
+
+**Date:** 2026-09-15
+
+### Context
+
+The owner's daily workflow requires searching the open web (Google-style) for
+datasheets, opening PDFs from result links, and saving them into the local
+library — all without leaving Datasheet Studio. Opening the OS browser and
+manually copying files back breaks the workflow. ADR-017 rejected a WebView
+only for the Flyback Designer tool UI; it did not decide the online-search
+surface.
+
+### Decision
+
+Use QtWebEngine (`QWebEngineView`) to embed a Chromium tab inside the
+application as the user-driven online search/download surface. Web searches
+(default Google, optional DuckDuckGo/Bing) run inside the embedded browser;
+downloads are validated (%PDF signature, SHA-256, size) and can be saved
+directly into the accepted v2 knowledge vault (falling back to the v1 library
+flow when no vault is active). Browsing remains strictly user-driven
+(ADR-012); no scraping or automated crawling is introduced.
+
+### Consequences
+
+**Positive:**
+
+- The full web remains usable for sources without permitted APIs while
+  downloads still enter the validated knowledge-base pipeline.
+- PDFs can be read inside the embedded viewer or opened in the Datasheet
+  Studio viewer with one click.
+
+**Negative:**
+
+- QtWebEngine adds runtime weight (render processes) and must be handled
+  gracefully when unavailable (existing fallback to the system browser).
+- Websites may show consent/anti-bot pages; engine choice is configurable.
+
+### Alternatives Considered
+
+- System-browser-only flow — explicitly rejected by the owner (broken
+  workflow).
+- API-only search (Phase 6 adapters) — kept in parallel, but not a
+  replacement for arbitrary web hunting.
 
 ## 3. Pending Decisions
 

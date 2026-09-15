@@ -298,6 +298,7 @@ class MainWindow(QMainWindow):
         self._search_strip.open_requested.connect(self._open_search_result)
         self._search_strip.preview_requested.connect(self._preview_online_result)
         self._search_strip.save_requested.connect(self._save_online_result)
+        self._search_strip.web_search_requested.connect(self._open_datasheet_browser)
         self._search_strip.expanded_changed.connect(self._resize_search_dock)
 
         dock = QDockWidget(self)
@@ -2912,8 +2913,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignRight)
         dialog.exec()
 
-    def _open_datasheet_browser(self) -> None:
-        """Open the small embedded web browser for searching/downloading."""
+    def _open_datasheet_browser(self, query: str = "") -> None:
+        """Open the embedded Chromium browser (optionally with a web search)."""
+
         from datasheet_studio.ui.dialogs.datasheet_browser import (
             DatasheetBrowserDialog,
         )
@@ -2923,8 +2925,20 @@ class MainWindow(QMainWindow):
         if store is not None:
             download_dir = store.root / "_downloads"
 
-        dialog = DatasheetBrowserDialog(self, download_dir=download_dir)
+        dialog = DatasheetBrowserDialog(
+            self,
+            download_dir=download_dir,
+            vault_path_getter=lambda: str(
+                self._settings.value("knowledgeBasePath", "") or ""
+            ),
+            import_service=getattr(self, "_online_import_service", None),
+            initial_query=query or "",
+        )
         dialog.add_download_to_library.connect(self._add_download_to_library)
+        dialog.open_pdf_requested.connect(self._open_library_item)
+        dialog.saved_to_vault.connect(
+            lambda message: self.statusBar().showMessage(message, 6000)
+        )
         dialog.exec()
 
     def _add_download_to_library(self, path: str) -> None:

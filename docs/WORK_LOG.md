@@ -263,3 +263,31 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Handoff: owner reviews DigiKey usefulness with real credentials at the
   Phase 6 gate; Phase 7 (complete document text/OCR coverage) starts only
   after acceptance.
+
+## 2026-09-15 — Phase 6 correction — Embedded Chromium browser per owner direction
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: implementation and test (owner-requested in-phase correction)
+- Requested by: project owner — the online search must be a Google-style web
+  search inside Datasheet Studio with in-app PDF opening and library saving;
+  the system-browser round trip is unacceptable.
+- Scope: Phase 6 correction only (Change Control §7). No new phase started.
+- Changed: rewrote `ui/dialogs/datasheet_browser.py` (RTL Chromium dialog,
+  engine selector, back/forward/reload, query search, validated download→
+  vault save with viewer-open action), added `web` source to the search
+  strip (`web_search_requested` signal; excluded from the "all" fan-out),
+  wired `main_window._open_datasheet_browser(query)` to the vault import
+  service, added ADR-021 + decision index row, updated
+  `docs/modules/ONLINE_DATASHEET_SEARCH.md` §5, this log, CURRENT_STATUS §20,
+  and HANDOFF; new tests in `tests/unit/test_datasheet_browser.py`.
+- Verification: 5 new offline tests; full regression **263 passed in 69.98 s**;
+  compile check + offscreen startup smoke passed (strip lists the web
+  source). QtWebEngine import verified in the project venv; the dialog keeps
+  its graceful system-browser fallback when the engine cannot start.
+- Not verified: real Google browsing/download inside a visible desktop
+  session (owner review); DigiKey with real credentials (still open from
+  Phase 6).
+- Commit: this commit
+- Handoff: owner tries the embedded browser (strip «وب» source or Library →
+  Search Datasheets Online...): Google search, open a PDF, save it to the
+  library — all inside the app. Corrections stay within Phase 6.

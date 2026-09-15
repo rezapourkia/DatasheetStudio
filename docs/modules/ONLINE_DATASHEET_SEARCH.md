@@ -1,6 +1,6 @@
 # Datasheet Studio — Bottom Online Datasheet Search
 
-**Status:** Planned replacement/extension of the current browser dialog
+**Status:** Active — embedded Chromium browser shipped (ADR-021); API adapters in parallel
 
 ## 1. User Experience
 
@@ -46,3 +46,16 @@ reported honestly.
 - Duplicate PDFs are detected by content hash.
 - A saved result immediately appears in local search and can be opened.
 - With no configured API, permitted links and browser fallback remain usable.
+
+## 5. Owner-Directed Correction — Embedded Browser (2026-09-15)
+
+The owner requires the whole hunt to happen **inside** Datasheet Studio
+(ADR-021): the bottom strip's «وب — مرورگر داخلی» source and
+**Library → Search Datasheets Online...** open the embedded Chromium dialog
+(QtWebEngine) with a Google/DuckDuckGo/Bing search of the query. Datasheet
+PDFs opened from result links render inside the embedded viewer; downloaded
+PDFs get row actions to **open in the Datasheet Studio viewer** or **save
+into the accepted v2 knowledge vault** (validated: %PDF signature, SHA-256,
+duplicate resolution, immediate local-search visibility). Without an active
+vault the legacy v1 add-to-library flow is used. System-browser opening
+remains an explicit optional button only.

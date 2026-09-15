@@ -138,13 +138,16 @@ class SearchStrip(QWidget):
     open_requested = Signal(str, int)
     preview_requested = Signal(object)
     save_requested = Signal(object)
+    web_search_requested = Signal(str)
     expanded_changed = Signal(bool)
 
     DEFAULT_PROVIDER_CHOICES: tuple[tuple[str, str], ...] = (
         ("local-kb", "کتابخانهٔ محلی"),
         ("digikey", "DigiKey"),
+        ("web", "وب — مرورگر داخلی"),
         ("mock-online", "نمایشی"),
     )
+    WEB_SOURCE_ID = "web"
 
     def __init__(
         self,
@@ -162,7 +165,10 @@ class SearchStrip(QWidget):
         self._provider_choices = tuple(
             provider_choices or self.DEFAULT_PROVIDER_CHOICES
         )
-        self._all_provider_ids = tuple(pid for pid, _label in self._provider_choices)
+        # The web source opens the embedded browser instead of result rows.
+        self._all_provider_ids = tuple(
+            pid for pid, _label in self._provider_choices if pid != self.WEB_SOURCE_ID
+        )
         self._generation = 0
         self._threads: dict[int, _SearchThread] = {}
         self._state = "hint"
@@ -289,6 +295,14 @@ class SearchStrip(QWidget):
         if not query:
             self._clear_results()
             self._set_state("hint", "برای جست‌وجو عبارت را وارد کنید.")
+            return
+
+        source = str(self._source_combo.currentData())
+        if source == self.WEB_SOURCE_ID:
+            # Owner-directed flow: web search inside the embedded browser.
+            self._clear_results()
+            self._set_state("results", f"جست‌وجوی وب برای «{query}» در مرورگر داخلی…")
+            self.web_search_requested.emit(query)
             return
 
         self._generation += 1
