@@ -1,63 +1,39 @@
-"""Provider-neutral search coordination for the bottom search strip.
+"""Provider-neutral, concurrent, cancellation-safe search coordination.
 
-Phase 5 deliberately ships only the local knowledge-base provider and a
-deterministic mock provider.  Network providers belong to Phase 6 and can be
-added through the same protocol without changing the widget.
+Phase 6 turns the Phase 5 sequential fan-out into a bounded thread pool that
+runs inside the strip's worker thread, keeps per-provider failures isolated,
+preserves provider order, and honours a cancellation event.  Domain result
+types live in ``models/search.py`` so infrastructure adapters can share them.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
-from typing import Protocol, Sequence
-from urllib.parse import quote
+import threading
+from typing import Sequence
 
 from datasheet_studio.infrastructure.storage.knowledge_index import KnowledgeIndex
 from datasheet_studio.infrastructure.storage.knowledge_vault import KnowledgeVault
+from datasheet_studio.infrastructure.web.digikey import DigiKeyCredentials, DigiKeyProvider
+from datasheet_studio.models.search import (
+    ProviderUnavailable,
+    SearchProvider,
+    SearchResponse,
+    SearchResult,
+)
 
-
-@dataclass(frozen=True)
-class SearchResult:
-    """One normalized result from any local or future online provider."""
-
-    provider_id: str
-    kind: str
-    title: str
-    subtitle: str = ""
-    snippet: str = ""
-    pdf_path: str | None = None
-    page: int | None = None
-    url: str | None = None
-    can_preview: bool = False
-    can_save: bool = False
-    source_label: str = ""
-
-    @property
-    def copy_target(self) -> str:
-        """Return the useful link/path exposed by the Copy action."""
-
-        return self.url or self.pdf_path or ""
-
-
-@dataclass(frozen=True)
-class SearchResponse:
-    """Combined results plus isolated provider notices and failures."""
-
-    results: tuple[SearchResult, ...] = ()
-    notices: tuple[tuple[str, str], ...] = ()
-    errors: tuple[tuple[str, str], ...] = ()
-
-
-class SearchProviderUnavailable(RuntimeError):
-    """A configured provider cannot currently be used (not a fatal search)."""
-
-
-class SearchProvider(Protocol):
-    """Small provider contract used by :class:`SearchService`."""
-
-    provider_id: str
-
-    def search(self, query: str, *, limit: int = 30) -> Sequence[SearchResult]: ...
+__all__ = [
+    "ProviderUnavailable",
+    "SearchProvider",
+    "SearchResponse",
+    "SearchResult",
+    "SearchService",
+    "LocalKnowledgeProvider",
+    "MockOnlineProvider",
+    "create_search_service",
+    "create_phase5_search_service",
+]
 
 
 class SearchService:
@@ -72,26 +48,42 @@ class SearchService:
         *,
         provider_ids: Sequence[str] | None = None,
         limit: int = 30,
+        cancel_event: threading.Event | None = None,
     ) -> SearchResponse:
         query = query.strip()
         if not query:
             return SearchResponse()
 
         wanted = tuple(provider_ids) if provider_ids else tuple(self._providers)
+        if cancel_event is not None and cancel_event.is_set():
+            return SearchResponse(notices=(("search", "جست‌وجو پیش از شروع لغو شد."),))
+
+        with ThreadPoolExecutor(max_workers=max(1, len(wanted))) as pool:
+            futures = {}
+            for provider_id in wanted:
+                provider = self._providers.get(provider_id)
+                if provider is None:
+                    continue  # surfaced below as a per-provider error
+                futures[provider_id] = pool.submit(provider.search, query, limit=limit)
+            wait(list(futures.values()))
+
         results: list[SearchResult] = []
         notices: list[tuple[str, str]] = []
         errors: list[tuple[str, str]] = []
+        cancelled = cancel_event is not None and cancel_event.is_set()
         for provider_id in wanted:
-            provider = self._providers.get(provider_id)
-            if provider is None:
-                errors.append((provider_id, "ارائه‌دهندهٔ جست‌وجو شناخته‌شده نیست."))
+            future = futures.get(provider_id)
+            if future is None:
+                errors.append((provider_id, "ارائه‌دهندهٔ جست‌وجو فعال نیست."))
                 continue
             try:
-                results.extend(provider.search(query, limit=limit))
-            except SearchProviderUnavailable as exc:
+                results.extend(future.result())
+            except ProviderUnavailable as exc:
                 notices.append((provider_id, str(exc)))
             except Exception as exc:  # noqa: BLE001 - provider isolation is the contract
                 errors.append((provider_id, str(exc)))
+        if cancelled:
+            notices.append(("search", "جست‌وجو لغو شد؛ نتایج ممکن است ناقص باشد."))
         return SearchResponse(
             results=tuple(results[:limit]),
             notices=tuple(notices),
@@ -110,7 +102,7 @@ class LocalKnowledgeProvider:
 
     def search(self, query: str, *, limit: int = 30) -> Sequence[SearchResult]:
         if self._vault_path is None or not self._vault_path.is_dir():
-            raise SearchProviderUnavailable(
+            raise ProviderUnavailable(
                 "کتابخانهٔ دانش v2 فعالی وجود ندارد؛ از مسیر Library → Upgrade Library to v2 آن را بسازید و تأیید کنید."
             )
 
@@ -118,13 +110,13 @@ class LocalKnowledgeProvider:
         try:
             _identity, accepted = vault.read_identity()
         except Exception as exc:  # noqa: BLE001 - convert vault parsing to provider state
-            raise SearchProviderUnavailable(f"کتابخانهٔ دانش قابل خواندن نیست: {exc}") from exc
+            raise ProviderUnavailable(f"کتابخانهٔ دانش قابل خواندن نیست: {exc}") from exc
         if not accepted:
-            raise SearchProviderUnavailable(
+            raise ProviderUnavailable(
                 "کتابخانهٔ دانش هنوز تأیید نهایی نشده است؛ مهاجرت را بازبینی و Accept کنید."
             )
         if not vault.index_path.is_file():
-            raise SearchProviderUnavailable(
+            raise ProviderUnavailable(
                 "ایندکس کتابخانه پیدا نشد؛ بازسازی ایندکس در مرحلهٔ نگهداری کتابخانه لازم است."
             )
 
@@ -156,22 +148,21 @@ class LocalKnowledgeProvider:
 
 
 class MockOnlineProvider:
-    """Deterministic Phase-5 placeholder; it never performs network I/O."""
+    """Deterministic placeholder; it never performs network I/O."""
 
     provider_id = "mock-online"
     source_label = "نمایشی — بدون اینترنت"
 
     def search(self, query: str, *, limit: int = 30) -> Sequence[SearchResult]:
         clean = " ".join(query.split())
-        slug = quote(clean, safe="")
         rows = (
             SearchResult(
                 provider_id=self.provider_id,
                 kind="datasheet",
                 title=f"{clean} — نتیجهٔ نمایشی سازنده",
                 subtitle="نمونهٔ رابط Phase 5؛ دادهٔ واقعی نیست",
-                snippet="پیش‌نمایش و ذخیره پس از اتصال منبع رسمی در Phase 6 فعال می‌شود.",
-                url=f"https://example.invalid/datasheets/{slug}",
+                snippet="پیش‌نمایش و ذخیره برای منابع واقعی فعال است.",
+                url=f"https://example.invalid/datasheets/{clean}",
                 can_preview=False,
                 can_save=False,
                 source_label=self.source_label,
@@ -182,7 +173,7 @@ class MockOnlineProvider:
                 title=f"{clean} — نتیجهٔ نمایشی دوم",
                 subtitle="Mock deterministic result",
                 snippet="این ردیف فقط برای تأیید چیدمان، وضعیت‌ها و اکشن Copy Link است.",
-                url=f"https://example.invalid/components/{slug}",
+                url=f"https://example.invalid/components/{clean}",
                 can_preview=False,
                 can_save=False,
                 source_label=self.source_label,
@@ -191,7 +182,27 @@ class MockOnlineProvider:
         return rows[: max(0, limit)]
 
 
-def create_phase5_search_service(vault_path: str | Path | None) -> SearchService:
-    """Build the complete Phase-5 provider set without any network adapter."""
+def create_search_service(
+    vault_path: str | Path | None,
+    digikey_getter: object | None = None,
+) -> SearchService:
+    """Build the Phase 6 provider set (local + DigiKey + mock)."""
 
-    return SearchService((LocalKnowledgeProvider(vault_path), MockOnlineProvider()))
+    digikey = DigiKeyProvider(digikey_getter) if digikey_getter is not None else DigiKeyProvider(
+        lambda: None
+    )
+    return SearchService(
+        (
+            LocalKnowledgeProvider(vault_path),
+            digikey,
+            MockOnlineProvider(),
+        )
+    )
+
+
+def create_phase5_search_service(vault_path: str | Path | None) -> SearchService:
+    """Backward-compatible Phase 5 set (kept for existing tests/callers)."""
+
+    return SearchService(
+        (LocalKnowledgeProvider(vault_path), MockOnlineProvider())
+    )

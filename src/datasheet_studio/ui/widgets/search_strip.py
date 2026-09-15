@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from html import escape
 
 from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
@@ -20,9 +20,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from datasheet_studio.models.search import SearchResponse, SearchResult
 from datasheet_studio.services.search_service import (
-    SearchResponse,
-    SearchResult,
     SearchService,
     create_phase5_search_service,
 )
@@ -62,6 +61,9 @@ class _ResultRow(QFrame):
         open_callback: Callable[[SearchResult], None],
         copy_callback: Callable[[SearchResult], None],
         parent: QWidget | None = None,
+        *,
+        preview_callback: Callable[[SearchResult], None] | None = None,
+        save_callback: Callable[[SearchResult], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self.result = result
@@ -97,19 +99,33 @@ class _ResultRow(QFrame):
         actions = QVBoxLayout()
         actions.setSpacing(3)
         self.open_button = QPushButton("باز کردن")
-        self.open_button.setEnabled(result.can_preview and bool(result.pdf_path))
-        self.open_button.setToolTip(
-            "PDF محلی را در صفحهٔ مرتبط باز می‌کند"
-            if self.open_button.isEnabled()
-            else "پیش‌نمایش واقعی در Phase 6 فعال می‌شود"
-        )
-        self.open_button.clicked.connect(lambda: open_callback(result))
+        has_local = bool(result.pdf_path)
+        is_online_preview = (not has_local) and bool(result.can_preview and result.url)
+        self.open_button.setEnabled(has_local or is_online_preview)
+        if has_local:
+            self.open_button.setToolTip("PDF محلی را در صفحهٔ مرتبط باز می‌کند")
+            self.open_button.clicked.connect(lambda: open_callback(result))
+        elif is_online_preview:
+            self.open_button.setText("پیش‌نمایش")
+            self.open_button.setToolTip("دانلود موقت و باز کردن PDF پیش از ذخیره")
+            self.open_button.clicked.connect(
+                lambda: (preview_callback or (lambda _r: None))(result)
+            )
+        else:
+            self.open_button.setToolTip("پیش‌نمایش PDF برای این نتیجه موجود نیست")
         self.copy_button = QPushButton("کپی لینک")
         self.copy_button.setEnabled(bool(result.copy_target))
         self.copy_button.clicked.connect(lambda: copy_callback(result))
         self.save_button = QPushButton("ذخیره در کتابخانه")
-        self.save_button.setEnabled(False)
-        self.save_button.setToolTip("دانلود و ذخیرهٔ امن در Phase 6 پیاده‌سازی می‌شود")
+        self.save_button.setEnabled(bool(result.can_save and result.url))
+        self.save_button.setToolTip(
+            "دانلود اعتبارسنجی‌شده و ذخیره در کتابخانهٔ دانش"
+            if self.save_button.isEnabled()
+            else "برای این نتیجه PDF مستقیمی برای ذخیره وجود ندارد"
+        )
+        self.save_button.clicked.connect(
+            lambda: (save_callback or (lambda _r: None))(result)
+        )
         actions.addWidget(self.open_button)
         actions.addWidget(self.copy_button)
         actions.addWidget(self.save_button)
@@ -117,22 +133,36 @@ class _ResultRow(QFrame):
 
 
 class SearchStrip(QWidget):
-    """Thin collapsed bar that expands into local/mock search results."""
+    """Thin collapsed bar that expands into local/online search results."""
 
     open_requested = Signal(str, int)
+    preview_requested = Signal(object)
+    save_requested = Signal(object)
     expanded_changed = Signal(bool)
+
+    DEFAULT_PROVIDER_CHOICES: tuple[tuple[str, str], ...] = (
+        ("local-kb", "کتابخانهٔ محلی"),
+        ("digikey", "DigiKey"),
+        ("mock-online", "نمایشی"),
+    )
 
     def __init__(
         self,
         vault_path_getter: Callable[[], str] | None = None,
         service_factory: Callable[[], SearchService] | None = None,
         parent: QWidget | None = None,
+        *,
+        provider_choices: Sequence[tuple[str, str]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("bottomSearchStrip")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self._vault_path_getter = vault_path_getter or (lambda: "")
         self._service_factory = service_factory
+        self._provider_choices = tuple(
+            provider_choices or self.DEFAULT_PROVIDER_CHOICES
+        )
+        self._all_provider_ids = tuple(pid for pid, _label in self._provider_choices)
         self._generation = 0
         self._threads: dict[int, _SearchThread] = {}
         self._state = "hint"
@@ -171,8 +201,8 @@ class SearchStrip(QWidget):
         self._source_combo = QComboBox()
         self._source_combo.setObjectName("searchSourceFilter")
         self._source_combo.addItem("همه", "all")
-        self._source_combo.addItem("کتابخانهٔ محلی", "local-kb")
-        self._source_combo.addItem("نمایشی", "mock-online")
+        for provider_id, label in self._provider_choices:
+            self._source_combo.addItem(label, provider_id)
         self._source_combo.currentIndexChanged.connect(self._schedule_search)
         controls.addWidget(self._source_combo)
 
@@ -264,12 +294,9 @@ class SearchStrip(QWidget):
         self._generation += 1
         generation = self._generation
         source = str(self._source_combo.currentData())
-        provider_ids = (
-            ("local-kb", "mock-online") if source == "all" else (source,)
-        )
-        vault_path = self._vault_path_getter()
+        provider_ids = self._all_provider_ids if source == "all" else (source,)
         factory = self._service_factory or (
-            lambda path=vault_path: create_phase5_search_service(path)
+            lambda: create_phase5_search_service(self._vault_path_getter())
         )
 
         self._clear_results()
@@ -282,6 +309,11 @@ class SearchStrip(QWidget):
         self._threads[generation] = thread
         thread.start()
 
+    def display_message(self, message: str) -> None:
+        """Show a transient action message without leaving the results state."""
+
+        self._set_state("results" if self._results_layout.count() > 1 else "hint", message)
+
     @Slot(int, object)
     def _on_search_finished(self, generation: int, response: SearchResponse) -> None:
         if generation != self._generation:
@@ -291,7 +323,14 @@ class SearchStrip(QWidget):
         for result in response.results:
             self._results_layout.insertWidget(
                 self._results_layout.count() - 1,
-                _ResultRow(result, self._open_result, self._copy_result, self._results_host),
+                _ResultRow(
+                    result,
+                    self._open_result,
+                    self._copy_result,
+                    self._results_host,
+                    preview_callback=self._preview_result,
+                    save_callback=self._save_result,
+                ),
             )
 
         messages = [message for _provider, message in response.notices]
@@ -338,6 +377,14 @@ class SearchStrip(QWidget):
     def _open_result(self, result: SearchResult) -> None:
         if result.pdf_path:
             self.open_requested.emit(result.pdf_path, result.page or 1)
+
+    def _preview_result(self, result: SearchResult) -> None:
+        if result.url:
+            self.preview_requested.emit(result)
+
+    def _save_result(self, result: SearchResult) -> None:
+        if result.url and result.can_save:
+            self.save_requested.emit(result)
 
     def _copy_result(self, result: SearchResult) -> None:
         target = result.copy_target

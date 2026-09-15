@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime
 
-from PySide6.QtCore import QObject, QSettings, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QSettings, Qt, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
@@ -53,6 +53,7 @@ from datasheet_studio.ui.markdown_render import html_escape, markdown_to_html
 from datasheet_studio.ui.widgets.note_overlay import NoteOverlayWidget
 from datasheet_studio.ui.widgets.note_editor import NoteEditorDialog
 from datasheet_studio.ui.widgets.search_strip import SearchStrip
+from datasheet_studio.services.online_import import OnlineImportService
 from datasheet_studio.models.pdf_document import PdfNote
 from datasheet_studio.services.ai_service import AIService
 from datasheet_studio.services.library_service import LibraryService
@@ -280,15 +281,23 @@ class MainWindow(QMainWindow):
         self._create_bottom_search_strip()
 
     def _create_bottom_search_strip(self) -> None:
-        """Dock the Phase-5 search entry point below the workspace splitter."""
+        """Dock the Phase-6 search entry point below the workspace splitter."""
 
+        self._online_import_service = OnlineImportService(
+            vault_path_getter=lambda: str(
+                self._settings.value("knowledgeBasePath", "") or ""
+            )
+        )
         self._search_strip = SearchStrip(
             vault_path_getter=lambda: str(
                 self._settings.value("knowledgeBasePath", "") or ""
             ),
+            service_factory=self._build_search_service,
             parent=self,
         )
         self._search_strip.open_requested.connect(self._open_search_result)
+        self._search_strip.preview_requested.connect(self._preview_online_result)
+        self._search_strip.save_requested.connect(self._save_online_result)
         self._search_strip.expanded_changed.connect(self._resize_search_dock)
 
         dock = QDockWidget(self)
@@ -300,6 +309,112 @@ class MainWindow(QMainWindow):
         self._search_dock = dock
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
         self._resize_search_dock(False)
+
+    def _build_search_service(self):
+        """Build the Phase-6 provider set from current local settings."""
+
+        from datasheet_studio.infrastructure.web.digikey import DigiKeyCredentials
+        from datasheet_studio.services.search_service import create_search_service
+
+        def digikey_credentials():
+            enabled = self._settings.value(
+                "onlineSources/digikeyEnabled", False, type=bool
+            )
+            if not enabled:
+                return None
+            return DigiKeyCredentials(
+                client_id=str(
+                    self._settings.value("onlineSources/digikeyClientId", "") or ""
+                ),
+                client_secret=str(
+                    self._settings.value("onlineSources/digikeyClientSecret", "") or ""
+                ),
+            )
+
+        return create_search_service(
+            vault_path=str(self._settings.value("knowledgeBasePath", "") or ""),
+            digikey_getter=digikey_credentials,
+        )
+
+    def _run_online_action(self, label: str, action) -> QThread:
+        """Run a bounded online action off the GUI thread."""
+
+        self.statusBar().showMessage(label, 0)
+
+        class _Worker(QThread):
+            done = Signal(object)
+            failed = Signal(str)
+
+            def run(self_inner) -> None:
+                try:
+                    self_inner.done.emit(action())
+                except Exception as exc:  # noqa: BLE001 - report, never crash
+                    self_inner.failed.emit(str(exc))
+
+        worker = _Worker(self)
+        self._online_workers = getattr(self, "_online_workers", [])
+        self._online_workers.append(worker)
+
+        def _cleanup() -> None:
+            if worker in self._online_workers:
+                self._online_workers.remove(worker)
+            self.statusBar().showMessage("", 2000)
+
+        def _done(result) -> None:
+            _cleanup()
+
+        def _failed(message: str) -> None:
+            _cleanup()
+            QMessageBox.warning(self, "منبع آنلاین", message)
+
+        worker.done.connect(_done)
+        worker.failed.connect(_failed)
+        worker.start()
+        return worker
+
+    def _preview_online_result(self, result) -> None:
+        """Download a temp copy and open it in the viewer (no storing)."""
+
+        worker = self._run_online_action(
+            f"در حال دانلود پیش‌نمایش: {result.title}…",
+            lambda: self._online_import_service.download_pdf(result.url),
+        )
+        worker.done.connect(
+            lambda downloaded: self._open_library_item(str(downloaded.path))
+        )
+
+    def _save_online_result(self, result) -> None:
+        """Download, validate, and save an online PDF into the v2 vault."""
+
+        def _save():
+            downloaded = self._online_import_service.download_pdf(result.url)
+            return self._online_import_service.save_to_vault(
+                downloaded,
+                manufacturer=result.subtitle,
+                part_number=result.title,
+                title=result.title,
+            )
+
+        worker = self._run_online_action(
+            f"در حال ذخیره {result.title} در کتابخانه…", _save
+        )
+
+        def _saved(outcome) -> None:
+            duplicate = (
+                " (محتوای تکراری — شیء منبع موجود بود)" if outcome.duplicate else ""
+            )
+            message = f"ذخیره شد: {result.title}{duplicate}"
+            self.statusBar().showMessage(message, 5000)
+            self._search_strip.display_message(f"✅ {message}")
+
+        worker.done.connect(_saved)
+
+    def _open_online_sources_settings(self) -> None:
+        from datasheet_studio.ui.dialogs.online_sources_dialog import (
+            OnlineSourcesDialog,
+        )
+
+        OnlineSourcesDialog(self).exec()
 
     @Slot(bool)
     def _resize_search_dock(self, expanded: bool) -> None:
@@ -1587,6 +1702,11 @@ class MainWindow(QMainWindow):
         self._add_to_library_action.triggered.connect(self._add_current_pdf_to_library)
 
         search_online_action = library_menu.addAction("Search Datasheets &Online...")
+        online_sources_settings = library_menu.addAction("&Online Sources Settings...")
+        online_sources_settings.setStatusTip(
+            "Enable and configure permitted online search sources (DigiKey)"
+        )
+        online_sources_settings.triggered.connect(self._open_online_sources_settings)
         search_online_action.setStatusTip(
             "Open a small web browser to find and temporarily download datasheets"
         )

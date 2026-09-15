@@ -220,3 +220,46 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: stop at Phase 5 `REVIEW`; owner approves/corrects the search layout
   before Phase 6 connects an official online source.
+
+## 2026-09-15 — Phase 6 — Online source adapter framework implemented and pushed
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation-first implementation and test
+- Requested by: project owner ("ادامه بده… تو ادامه بده" after reporting
+  that OpenAI Codex had completed Phase 5)
+- Scope: Phase 6 only per `docs/DEVELOPMENT_PLAN.md` — provider contract,
+  concurrent cancellation-safe search coordination, bounded HTTP client,
+  first official adapter (DigiKey), validated download with
+  preview-before-save into the accepted v2 vault, settings UI. Browser
+  fallback preserved; no scraping.
+- Prior-agent work verified first: Codex's Phase 5 commit `f2215f4` was
+  re-verified in the current checkout (compile OK; full suite **236 passed**;
+  offscreen smoke with the strip present) before building on it.
+- Changed: added `docs/modules/ONLINE_ADAPTER_FRAMEWORK.md` (contract first),
+  `src/datasheet_studio/models/search.py`,
+  `src/datasheet_studio/infrastructure/web/{__init__,http_client,digikey}.py`,
+  `src/datasheet_studio/services/online_import.py`,
+  `src/datasheet_studio/ui/dialogs/online_sources_dialog.py`; reworked
+  `services/search_service.py` (domain types moved to models, concurrency +
+  cancellation; `create_phase5_search_service` kept for compatibility);
+  extended `ui/widgets/search_strip.py` (DigiKey source, پیش‌نمایش/ذخیره
+  affordances, dynamic provider choices, `display_message`); wired
+  main-window workers (download/save off the GUI thread) and a
+  Library-menu settings action; `pyproject.toml` deploy-list entries;
+  status doc updates.
+- Verification: 22 new offline unit tests (`test_http_client.py`,
+  `test_digikey_adapter.py`, `test_online_import.py`,
+  `test_online_sources_dialog.py`) covering timeout, HTTP 429, malformed
+  JSON, oversized download, mid-stream cancellation, non-PDF signature,
+  token happy path + caching + unconfigured notice, vault dedup +
+  searchability + guidance errors, strip preview/save signals, and the
+  settings dialog round-trip; full regression **258 passed in 66.39 s**;
+  compile check and offscreen startup smoke (source combo shows DigiKey).
+- Not verified: the real DigiKey API (no credentials available here) — the
+  adapter is tested only through a mocked transport and the owner must run
+  تست اتصال with real credentials; secure OS key storage remains pending
+  (ADR-009).
+- Commit: this commit
+- Handoff: owner reviews DigiKey usefulness with real credentials at the
+  Phase 6 gate; Phase 7 (complete document text/OCR coverage) starts only
+  after acceptance.

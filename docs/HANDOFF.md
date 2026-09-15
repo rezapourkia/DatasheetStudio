@@ -2,77 +2,78 @@
 
 **Updated:** 2026-09-15
 
-**Contributors:** ZCode (initial Phase 5 module contract); OpenAI Codex
-(review, implementation, tests, docs, and visual check)
+**Contributor:** ZCode (Z.ai, GLM)
 
 **Branch:** `feature/datasheet-to-design-v2`
 
-**Active phase:** Phase 5 — `REVIEW`
+**Active phase:** Phase 6 — `REVIEW`
 
 ## Completed Result
 
-Phase 5 adds the bottom datasheet-search UX without crossing into Phase 6:
+Phases 1–5 were accepted for sequencing. Phase 5 was implemented by OpenAI
+Codex (commit `f2215f4`) and re-verified in the current checkout by ZCode
+(compile OK, full suite 236 passed, offscreen smoke) before Phase 6 began.
+Phase 6 (online source adapter framework) is implemented, tested, and pushed:
 
-- Persian RTL collapsed bar below the unchanged four-panel splitter; Ctrl+K
-  expands and targets the query workflow.
-- Local provider searches the accepted v2 vault selected by
-  `QSettings: knowledgeBasePath`; SQLite is opened and closed inside a worker
-  thread, and document/page/field hits resolve to their content-addressed PDF
-  and page where source evidence exists.
-- Deterministic `mock-online` rows exercise the future online-result layout but
-  perform no network access. Preview and Save remain disabled; Copy Link works.
-- Hint/searching/results/no-results/no-vault/error states, 350 ms debounce,
-  source filter, retry, stale-result generation guard, thread shutdown, and
-  provider-failure isolation are implemented and tested.
-- Existing **Library → Search Datasheets Online...** remains the fallback.
+- **Library → Online Sources Settings…** — enable DigiKey, store Client
+  ID/Secret locally (QSettings; plain-text limitation documented), test the
+  connection from a worker thread.
+- **Bottom strip** — sources: همه / کتابخانهٔ محلی / DigiKey / نمایشی. Online
+  rows with a datasheet URL offer **پیش‌نمایش** (validated temp download,
+  opened in the viewer, nothing stored) and **ذخیره در کتابخانه**
+  (validated download → content-addressed vault import → incremental index
+  update → immediately searchable locally).
+- Framework: shared domain types (`models/search.py`), concurrent
+  cancellation-safe `SearchService`, bounded stdlib HTTP client
+  (`infrastructure/web/http_client.py`: timeouts, 429 mapping, size caps,
+  cancellation, %PDF signature), official DigiKey v4 adapter
+  (`infrastructure/web/digikey.py`), `services/online_import.py`.
+- Per-provider isolation preserved; unconfigured DigiKey is a guidance
+  notice, not an error. Browser fallback untouched.
 
-## Verification Performed by OpenAI Codex
-
-- Incoming Phase-4 baseline: **227 passed in 66.62 s**.
-- Focused Phase-5/index/main-window regression: **48 passed**.
-- Focused thread lifecycle/stale-result suite: **28 passed**.
-- Full regression after implementation: **236 passed in 65.12 s**.
-- `python -m compileall -q src tests`: passed.
-- Visible Windows run: collapsed and expanded strip, Ctrl+K, RTL order, and
-  preservation of the four-panel workspace were inspected successfully.
+Recorded verification: full regression **258 passed in 66.39 s** (22 new
+offline tests using a mocked HTTP transport), compile check and offscreen
+startup smoke passed.
 
 ## Working Tree
 
-After the Phase-5 commit the tree should be clean except ignored local artifacts
-(`build/`, `dist/`, `dist-native/`, `.venv`, caches, crash reports, and local
-PDFs). Do not commit those. Preserve any later uncommitted owner/agent work.
+Expected clean except ignored local artifacts (`build/`, `dist/`,
+`dist-native/`, `.venv`, caches, crash reports, local PDFs). Never commit
+those. Preserve any later uncommitted owner/agent work.
 
 ## Not Verified
 
-- Search/open against the owner's migrated real knowledge vault.
-- Packaged Nuitka executable and alternate DPI/scaling configurations.
-- Windows UI Automation text entry: Qt exposed the disabled AI editor as the
-  accessibility focus while the new query field visibly had focus. Qt widget
-  tests cover focusability, debounce, explicit search, and row actions.
-- No real network provider, download, validation, or Save to Library exists in
-  Phase 5; none is claimed tested.
-- Phase-4 real-library migration and visible cancellation limitations remain as
-  recorded in `docs/modules/LIBRARY_UPGRADE.md`.
+- **The real DigiKey integration is UNTESTED** — no valid credentials were
+  available; all network behavior is covered only through the mocked
+  transport. Mark it tested only after the owner runs تست اتصال with real
+  credentials.
+- Secure OS key storage (ADR-009) remains pending; credentials are stored
+  plainly in QSettings exactly like the current AI keys.
+- The owner's real migrated vault flows (open Phase 4/5 review items:
+  real-library migration, real-vault search) remain unexercised.
 
 ## Next Permitted Action
 
-Stop at the Phase 5 owner-review gate. The owner should try Ctrl+K, local/mock
-filters, collapse/expand behavior, and opening results from a migrated copy.
-Apply any requested corrections inside Phase 5. Begin Phase 6 only after the
-owner explicitly accepts this UX; Phase 6 must start with its own Markdown
-contract/update before adding network/download/save behavior.
+Stop at the Phase 6 owner-review gate. The owner should exercise DigiKey
+with real credentials (**Library → Online Sources Settings… → تست اتصال**),
+judge result usefulness, and try the preview/save flow in the bottom strip.
+After acceptance, the next phase is Phase 7 — complete document text/OCR
+coverage — starting with its own Markdown contract. Do not start Phase 7
+before that.
 
 ## Required Reading for the Next Contributor
 
 1. `AGENTS.md` if present at the repository/workspace boundary
 2. `docs/HANDOFF.md`, `docs/DEVELOPMENT_PLAN.md`, and `docs/PRODUCT_VISION.md`
-3. `docs/modules/BOTTOM_SEARCH_STRIP.md`
-4. `docs/modules/KNOWLEDGE_INDEX.md` and `KNOWLEDGE_BASE_SCHEMA.md`
-5. `docs/CURRENT_STATUS.md` section 19 and `docs/WORK_LOG.md`
+3. `docs/modules/ONLINE_ADAPTER_FRAMEWORK.md` (Phase 6 contract)
+4. `docs/modules/BOTTOM_SEARCH_STRIP.md`, `KNOWLEDGE_INDEX.md`,
+   `KNOWLEDGE_BASE_SCHEMA.md`, `LIBRARY_UPGRADE.md`
+5. `docs/CURRENT_STATUS.md` (section 19 is the newest record) and
+   `docs/WORK_LOG.md`
 6. `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`
 
 ## Verification Rule
 
-Do not repeat the results above as current facts without rerunning the relevant
-checks in the new checkout. Do not infer contributor identity from Git author;
-use commit trailers and the append-only work log.
+Do not repeat the results above as current facts without rerunning the
+relevant checks in the new checkout. Do not infer contributor identity from
+Git author; use commit trailers and the append-only work log.

@@ -984,3 +984,46 @@ expanded layout, Ctrl+K, RTL order, and that the four-panel workspace remains
 usable. Not verified: the owner's real migrated vault, packaged executable,
 DPI variants, or any real provider/download/save flow. Phase 5 is at the owner
 review gate; Phase 6 must not start without acceptance.
+
+---
+
+## 19. Phase 6 — Online Source Adapter Framework — 2026-09-15
+
+Implemented per `docs/modules/ONLINE_ADAPTER_FRAMEWORK.md` (contract written
+first). Visible desktop changes:
+
+- **Library → Online Sources Settings…**: Persian RTL dialog to enable
+  DigiKey and store its Client ID/Secret locally (QSettings only; same
+  plain-text limitation as AI keys, ADR-009 pending) with a worker-thread
+  **تست اتصال** button.
+- **Bottom strip**: source filter now offers همه / کتابخانهٔ محلی / DigiKey /
+  نمایشی. Online rows with a datasheet URL get **پیش‌نمایش** (validated temp
+  download opened in the viewer, nothing stored) and **ذخیره در کتابخانه**
+  (download → %PDF/size/hash validation → content-addressed import into the
+  accepted v2 vault → incremental index update → immediately searchable).
+
+Framework (all offline-tested with a mocked HTTP transport):
+
+- `models/search.py`: shared provider/result domain types.
+- `services/search_service.py`: concurrent (thread-pool) cancellation-safe
+  fan-out; deterministic provider order; per-provider isolation.
+- `infrastructure/web/http_client.py`: bounded stdlib HTTP — timeouts,
+  HTTP-429 mapping, size caps, mid-stream cancellation, `%PDF-` signature
+  check, injectable transport.
+- `infrastructure/web/digikey.py`: official DigiKey Product Information v4
+  adapter (OAuth2 client-credentials token cached with expiry + keyword
+  search). Unconfigured state is a guidance notice, not an error.
+- `services/online_import.py`: preview-before-save with duplicate resolution
+  (same content → one object, duplicate reported); saves require an accepted
+  vault.
+
+Verification: full regression **258 passed in 66.39 s** (22 new tests:
+timeout/429/malformed/too-large/cancel/signature HTTP cases; DigiKey token
+happy-path, caching, unconfigured, rate-limit; import dedup, searchability,
+no/unaccepted vault; strip preview/save signals; settings dialog round-trip
+with injected tester); compile check and offscreen startup smoke passed.
+
+Not verified: **the real DigiKey integration** (no valid credentials were
+available — everything network-related runs through the mocked transport).
+The owner must exercise **تست اتصال** with real credentials before this is
+called tested. Browser fallback remains available.
