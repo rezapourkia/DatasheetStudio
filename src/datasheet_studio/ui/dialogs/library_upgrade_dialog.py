@@ -244,6 +244,7 @@ class LibraryUpgradeDialog(QDialog):
         self._worker.progressed.connect(self._on_progress)
         self._worker.finished_ok.connect(self._on_migration_finished)
         self._worker.failed.connect(self._on_migration_failed)
+        self._worker.finished.connect(self._maybe_finish_pending_close)
         self._worker.start()
 
     def _cancel_migration(self) -> None:
