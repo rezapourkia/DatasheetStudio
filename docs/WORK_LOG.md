@@ -497,3 +497,24 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
 - Commit: this commit
 - Handoff: see HANDOFF — Phase 12 remains at REVIEW; Phase 13 blocked
   pending owner acceptance.
+
+## 2026-09-15 — Review round 3 — four reproduced defects fixed one-by-one
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: corrective implementation and test per owner-relayed findings
+  (reviewed commit dc6a433; reviewer re-verified the round-2 fixes and
+  reproduced the four remaining defects)
+- Scope: no Phase-13 work; no "fully fixed" claims. Each item: reproduction
+  test red on the reported behavior → fix → dedicated commit.
+- Changed: r3-1 whole-project preservation on open/save (`e26455d`);
+  r3-2 real close button cancels the migration worker (`bd0d8b9`);
+  r3-3 extraction deficiencies stay visible (model contradictions survive
+  the merge; final status composes the not-complete warning) (`f659f1d`);
+  r3-4 catalogue NaN/inf/hash validation (`3e624c1`); REVIEW_FINDINGS
+  §Round 3 (per-item entries); HANDOFF refreshed with the new HEAD.
+- Verification: 10 new reproduction tests (all red before their fix);
+  full regression **359 passed in 78.00 s** (ZCode's own run).
+- Not verified: owner re-verification of the four items; Phase-13 start
+  remains blocked.
+- Commit: this commit
+- Handoff: statuses are "fixed & tested, awaiting owner re-verification".

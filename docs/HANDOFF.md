@@ -6,6 +6,15 @@
 
 **Review contributor:** OpenAI Codex (documentation/static review only)
 
+**Reviewed commit (round 3):** `dc6a433` — four remaining defects were
+reproduced by the owner's reviewer and fixed in `e26455d` (whole-project
+preservation on open/save), `bd0d8b9` (real close button cancels the
+migration worker), `f659f1d` (extraction deficiencies stay visible: model
+contradictions survive the merge; the not-complete warning is composed
+into the final status), and `3e624c1` (catalogue rejects NaN/inf values
+and malformed SHA-256 provenance). Post-fix regression (ZCode's own run):
+**359 passed in 78.00 s**. These four items are **awaiting the owner's
+re-verification** and are NOT recorded as fully resolved.
 **Branch:** `feature/datasheet-to-design-v2`
 
 **HEAD / origin:** `483846b` — Phase 12 magnetics catalogue foundation

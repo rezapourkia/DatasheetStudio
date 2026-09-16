@@ -180,3 +180,57 @@ clobbered the chunk-archive `metadata.json` (removed — chunk archiving is
 authoritative); the worker did not forward provider/model into the archive;
 page texts were lost without a vault cache (service now keeps
 `last_page_texts` in memory).
+
+
+## Round 3 — Reproduced remaining defects at `dc6a433` (owner/Codex, 2026-09-15)
+
+The reviewer confirmed the round-2 fixes (QWidget crash, archive clobbering,
+provider/model archiving, settings separation) and reproduced four further
+defects with real buttons (71 related tests run independently; the new
+flyback test had passed only because it asserted frequency alone). Each
+defect is recorded and fixed separately below — **status is "fixed &
+tested, awaiting owner re-verification"; NOT claimed fully resolved.**
+
+### r3-1 (مهم) — Project data loss on open/save
+
+Reproduced: opening and saving with the real buttons reverted ic_id
+DK125→dk124, isolation_group→main, feedback→True, and the custom scenario
+matrix to defaults. Root cause: `_project_from_form` rebuilt the project
+from the visible controls only, so every field without an editor was lost.
+Fix: the dialog keeps the last applied project and overwrites only
+form-edited fields; per-row output v2 fields survive. Test:
+`tests/unit/test_review_r3_project_roundtrip.py` (2 tests, red before).
+Commit: `e26455d`.
+
+### r3-2 (مهم) — Unsafe migration-dialog close
+
+Reproduced: the real «بستن» button closed the dialog without requesting
+worker cancellation — it was wired to `accept()`, bypassing the round-1
+`reject()` guard. Fix: the button routes through `reject()` (cancel first,
+close after the worker finishes; kept as `_close_button` for tests).
+Test: `tests/unit/test_review_r3_close_button.py` (red before; observable
+via the `finished` signal because `Rejected == 0`). Commit: `bd0d8b9`.
+
+### r3-3 (مهم) — Hidden extraction deficiencies
+
+Reproduced: (a) an unprocessed page-2 produced no warning in the final
+result — the candidates message overwrote the omission status; (b) a
+model-declared contradiction vanished in the merge (chunk
+`contradictions` were never collected). Fix: the final status composes
+candidates + unaccounted-pages warning + contradiction count; the merge
+accumulates model contradictions (deduplicated, archived, reviewable).
+Tests: `tests/unit/test_review_r3_extraction_visibility.py` (2 tests, red
+before). Commit: `f659f1d`.
+
+### r3-4 (مهم) — Incomplete catalogue validation
+
+Reproduced: NaN geometry/gaps, infinite loss coefficients, and a malformed
+source hash were accepted (`nan <= 0` is False, so the old checks passed).
+Fix: `math.isfinite` guards on every positive-number check, gap options,
+and Steinmetz coefficients; provenance hashes must match 64-hex SHA-256.
+Tests: `tests/unit/test_review_r3_catalog_numbers.py` (4 tests, red
+before; valid packs still pass). Commit: `3e624c1`.
+
+Post-round-3 regression (ZCode's own run): **359 passed in 78.00 s**.
+Phase 13 remains NOT started; the four items above await the owner's
+re-verification before anything is recorded as resolved.
