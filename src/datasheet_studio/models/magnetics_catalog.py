@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+import math
+import re
 from typing import Any, Mapping
 
 CATALOG_SCHEMA_VERSION = 2
@@ -22,8 +24,15 @@ class CatalogValidationError(ValueError):
 
 
 def _positive(value: object, label: str) -> float:
-    if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
-        raise CatalogValidationError(f"«{label}» باید عددی مثبت باشد.")
+    # Round-3 fix: NaN passes `value <= 0` (all comparisons are False), so
+    # finiteness must be checked explicitly.
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not math.isfinite(float(value))
+        or value <= 0
+    ):
+        raise CatalogValidationError(f"«{label}» باید عددی متناهی و مثبت باشد.")
     return float(value)
 
 
@@ -33,9 +42,17 @@ def _require(text: object, label: str) -> str:
     return text.strip()
 
 
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+
+
 def _require_provenance(source_hash: object, page: object, label: str) -> None:
-    if not isinstance(source_hash, str) or not source_hash.strip():
-        raise CatalogValidationError(f"«منبع {label}» (هش سند منبع) الزامی است.")
+    if (
+        not isinstance(source_hash, str)
+        or not _SHA256_RE.match(source_hash.strip())
+    ):
+        raise CatalogValidationError(
+            f"«منبع {label}» باید یک هش SHA-256 معتبر (۶۴ کاراکتر مبنای ۱۶) باشد."
+        )
     if not isinstance(page, int) or page < 1:
         raise CatalogValidationError(f"«صفحهٔ منبع {label}» الزامی است.")
 
@@ -79,9 +96,14 @@ class CoreRecord:
         ):
             _positive(value, f"هندسه {name}")
         for gap in self.gap_options_um:
-            if not isinstance(gap, (int, float)) or gap <= 0:
+            if (
+                not isinstance(gap, (int, float))
+                or isinstance(gap, bool)
+                or not math.isfinite(float(gap))
+                or gap <= 0
+            ):
                 raise CatalogValidationError(
-                    f"گپ «{gap!r}» نامعتبر است؛ باید عددی مثبت (میکرومتر) باشد."
+                    f"گپ «{gap!r}» نامعتبر است؛ باید عددی متناهی و مثبت (میکرومتر) باشد."
                 )
         _require_provenance(self.source_hash, self.page, "هسته")
         _review_state(self.review_state)
@@ -114,7 +136,10 @@ class MaterialRecord:
         coefficients = (self.loss_k, self.loss_alpha, self.loss_beta)
         if any(c is not None for c in coefficients):
             if not all(
-                isinstance(c, (int, float)) and not isinstance(c, bool) and c > 0
+                isinstance(c, (int, float))
+                and not isinstance(c, bool)
+                and math.isfinite(float(c))
+                and c > 0
                 for c in coefficients
             ):
                 raise CatalogValidationError(
