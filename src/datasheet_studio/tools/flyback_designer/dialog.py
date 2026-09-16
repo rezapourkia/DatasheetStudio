@@ -69,6 +69,9 @@ class FlybackDesignerDialog(QDialog):
         # else (ic_id, part ids, scenarios, per-output v2 fields) is
         # preserved from the last applied project on every rebuild.
         self._loaded_project: FlybackProject = default_project()
+        # Round-4 fix: per-row source outputs — hidden v2 fields follow
+        # each row's OWN output, so deleting a row never shifts data.
+        self._row_outputs: list[OutputSpec] = list(default_project().outputs)
         self._recalculate_timer = QTimer(self)
         self._recalculate_timer.setSingleShot(True)
         self._recalculate_timer.setInterval(180)
@@ -223,6 +226,8 @@ class FlybackDesignerDialog(QDialog):
         add_output.clicked.connect(self._add_output)
         remove_output = QPushButton("− حذف خروجی")
         remove_output.clicked.connect(self._remove_output)
+        self._add_output_button = add_output
+        self._remove_output_button = remove_output
         output_actions.addWidget(add_output)
         output_actions.addWidget(remove_output)
         output_actions.addStretch()
@@ -385,7 +390,9 @@ class FlybackDesignerDialog(QDialog):
                 self, "خروجی‌ها", f"حداکثر {MAX_OUTPUTS} خروجی پشتیبانی می‌شود."
             )
             return
-        self._append_output(OutputSpec(f"خروجی {self._outputs_table.rowCount() + 1}", 5, 0.5))
+        fresh = OutputSpec(f"خروجی {self._outputs_table.rowCount() + 1}", 5, 0.5)
+        self._row_outputs.append(fresh)  # new row gets default identity
+        self._append_output(fresh)
         self._schedule_recalculate()
 
     def _remove_output(self) -> None:
@@ -395,6 +402,8 @@ class FlybackDesignerDialog(QDialog):
         row = self._outputs_table.currentRow()
         if row < 0:
             row = self._outputs_table.rowCount() - 1
+        if row < len(self._row_outputs):
+            self._row_outputs.pop(row)  # remove THIS row's identity with it
         self._outputs_table.removeRow(row)
         self._schedule_recalculate()
 
@@ -413,7 +422,7 @@ class FlybackDesignerDialog(QDialog):
         # the fields the form edits; everything the form does not show
         # (ic_id, part ids, scenarios, per-output v2 fields) survives a save.
         base = deepcopy(self._loaded_project)
-        preserved_outputs = list(base.outputs)
+        preserved_outputs = self._row_outputs  # row-bound, deletion-safe
         outputs: list[OutputSpec] = []
         for row in range(self._outputs_table.rowCount()):
             def cell(column: int) -> str:
@@ -497,6 +506,7 @@ class FlybackDesignerDialog(QDialog):
 
     def _apply_project(self, project: FlybackProject, core: CoreSpec) -> None:
         self._loaded_project = deepcopy(project)
+        self._row_outputs = [deepcopy(output) for output in project.outputs]
         self._loading = True
         try:
             self._cores_by_id[core.core_id] = deepcopy(core)
