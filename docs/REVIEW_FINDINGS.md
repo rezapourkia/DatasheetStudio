@@ -234,3 +234,41 @@ before; valid packs still pass). Commit: `3e624c1`.
 Post-round-3 regression (ZCode's own run): **359 passed in 78.00 s**.
 Phase 13 remains NOT started; the four items above await the owner's
 re-verification before anything is recorded as resolved.
+
+
+## Round 4 — Three remaining cases at `374186c` (owner/Codex, 2026-09-15)
+
+Round-3 fixes confirmed (project preservation without row changes, close
+requests cancellation, unprocessed-page warning shown, model contradictions
+kept, previously reported invalid values rejected; 81 related reviewer
+tests passed). Three reproduced defects follow — each **fixed & tested,
+awaiting owner re-verification**; NOT claimed fully resolved.
+
+### r4-1 (مهم) — Deleting an output shifted the others' identity
+
+Reproduced: hidden v2 fields were recovered by row index, so deleting A
+gave B A's output_id/isolation/feedback — in memory and in the saved file.
+Fix: per-row `_row_outputs` list — deletion removes exactly that row's
+identity, addition appends a default one, the rebuild reads the row's OWN
+output. Tests (real buttons): delete selected first row; delete middle +
+add new + save (new row keeps defaults). Commit: `fa34368`.
+
+### r4-2 (متوسط) — Close after migration end was not guaranteed
+
+Reproduced with a real thread and controlled timing: the result message
+could arrive before the thread truly finished, leaving the window open.
+Fix: the worker's `QThread.finished` signal is connected to
+`_maybe_finish_pending_close`; the test drives the real preview→start
+path with a slow thread and asserts the close happens only via the
+thread-finished signal (no manual helper call). Commit: `9c09222`.
+
+### r4-3 (متوسط) — Material frequency/temperature bounds still incomplete
+
+Reproduced: `freq_min_khz=NaN` and `temp_max_c=Infinity` were accepted
+(NaN defeats ordering comparisons). Fix: all four bounds must be finite
+numbers (temperature may be negative) before ordering is checked.
+Commit: `3f6df97`.
+
+Post-round-4 regression (ZCode's own run): **363 passed in 74.30 s**.
+HANDOFF's stale HEAD (483846b) corrected in the same documentation commit.
+Phase 13 remains NOT started.

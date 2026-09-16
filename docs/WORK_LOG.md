@@ -518,3 +518,20 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
   remains blocked.
 - Commit: this commit
 - Handoff: statuses are "fixed & tested, awaiting owner re-verification".
+
+## 2026-09-15 — Review round 4 — three reproduced cases fixed one-by-one
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: corrective implementation and test per owner-relayed findings
+  (reviewed commit 374186c; round-3 fixes confirmed by the reviewer)
+- Scope: no Phase-13 work; no "fully fixed" claims.
+- Changed: `fa34368` (row-bound output identity), `9c09222` (pending close
+  via QThread.finished), `3f6df97` (finite material bounds); round-4
+  section in REVIEW_FINDINGS; HANDOFF HEAD corrected from 483846b to the
+  round-4 reviewed commit; this entry.
+- Verification: 4 new reproduction tests (red before their fixes; the
+  pending-close test drives the real preview→start path and never calls
+  the helper manually); full regression **363 passed in 74.30 s**
+  (ZCode's own run).
+- Not verified: owner re-verification; Phase 13 blocked.
+- Commit: this commit
