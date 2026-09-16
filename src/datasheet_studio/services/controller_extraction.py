@@ -262,6 +262,9 @@ def extract_complete(
             merged.part_number = chunk_result.part_number
         merged.package = merged.package or chunk_result.package
         merged.unknown_facts.extend(chunk_result.unknown_facts)
+        # Round-3 fix: contradictions the MODEL declared must survive the
+        # merge (they were silently dropped before).
+        merged.contradictions.extend(chunk_result.contradictions)
         seen = {item["name"] for item in merged.candidate_fields}
         for item in chunk_result.candidate_fields:
             if item["name"] in seen:
@@ -334,6 +337,8 @@ def extract_complete(
             + "\n",
             encoding="utf-8",
         )
+    merged.contradictions = list(dict.fromkeys(merged.contradictions))
+
     return CompleteExtraction(
         result=merged,
         omitted_pages=omitted,

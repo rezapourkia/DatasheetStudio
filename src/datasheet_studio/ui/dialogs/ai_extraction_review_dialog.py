@@ -244,13 +244,7 @@ class AiExtractionReviewDialog(QDialog):
         self._result = result
         self._request_text = ""  # archived per-chunk by extract_complete
         self._response_text = ""
-        if outcome.omitted_pages:
-            shown = "، ".join(map(str, outcome.omitted_pages[:12]))
-            self._status.setText(
-                "⚠️ استخراج «کامل» نیست — صفحات حساب‌نشده: " + shown
-                + ("…" if len(outcome.omitted_pages) > 12 else "")
-                + " (برای این صفحات ابتدا پوشش متن را کامل کنید.)"
-            )
+
         self._progress.hide()
         self._cancel_button.setEnabled(False)
         self._retry_button.show()
@@ -280,10 +274,25 @@ class AiExtractionReviewDialog(QDialog):
                 row, 4, QTableWidgetItem(issues_by_field.get(item["name"], ""))
             )
             result.candidate_fields[row]["_checkbox"] = check
-        self._status.setText(
+        message = (
             f"{len(result.candidate_fields)} فیلد کاندید دریافت شد — موارد مشکل‌دار علامت نخورده‌اند. "
             "فقط فیلدهای تیک‌خورده وارد پروفایل می‌شوند (با وضعیت «استخراج‌شده»)."
         )
+        # Round-3 fix: the deficiency warning must SURVIVE the final message
+        # instead of being overwritten by it.
+        if outcome.omitted_pages:
+            shown = "، ".join(map(str, outcome.omitted_pages[:12]))
+            message += (
+                "  ⚠️ استخراج «کامل» نیست — صفحات حساب‌نشده: " + shown
+                + ("…" if len(outcome.omitted_pages) > 12 else "")
+                + " (برای این صفحات ابتدا پوشش متن را کامل کنید.)"
+            )
+        if result.contradictions:
+            message += (
+                f"  ⚠️ تناقض‌های گزارش‌شده: {len(result.contradictions)}"
+                " (در توضیحات پروفایل ثبت می‌شوند.)"
+            )
+        self._status.setText(message)
         self._accept_button.setEnabled(bool(result.candidate_fields))
 
     def _accept(self):
