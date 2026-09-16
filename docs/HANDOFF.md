@@ -6,7 +6,7 @@
 
 **Review contributor:** OpenAI Codex (documentation/static review only)
 
-**Reviewed commit (round 4):** `374186c` (round 3 reviewed `dc6a433`; the round-3 fixes were confirmed by the reviewer) — four remaining defects were
+**Confirmed state (round 5):** round-4 fixes `fa34368`/`9c09222`/`3f6df97` verified by the reviewer (85 related tests); documentation HEAD `a0ebe56`. Round 4 reviewed `374186c`; round 3 reviewed `dc6a433`. — four remaining defects were
 reproduced by the owner's reviewer and fixed in `e26455d` (whole-project
 preservation on open/save), `bd0d8b9` (real close button cancels the
 migration worker), `f659f1d` (extraction deficiencies stay visible: model
@@ -16,10 +16,7 @@ and malformed SHA-256 provenance). Round-3 fixes were confirmed by the reviewer.
 further cases at `374186c`, each fixed and tested separately: row-shift
 of output identity on deletion (`fa34368`), pending close guaranteed by
 the real `QThread.finished` signal (`9c09222`), and finite
-frequency/temperature bounds on materials (`3f6df97`). Post-round-4
-regression (ZCode's own run): **363 passed in 74.30 s**. These items
-are **awaiting the owner's re-verification** and are NOT recorded as
-fully resolved.
+frequency/temperature bounds on materials (`3f6df97`). Post-round-4 regression (ZCode's own run): **363 passed in 74.30 s**; reviewer confirmation: **85 related tests passed**. These items are now reviewer-confirmed. Phase 12 is NOT complete — the ordered next work is (1) the real manufacturer magnetics pack and (2) the Phase-11 outputs/scenarios editors; Phase 13 stays blocked.
 **Branch:** `feature/datasheet-to-design-v2`
 
 **HEAD / origin:** `483846b` — Phase 12 magnetics catalogue foundation

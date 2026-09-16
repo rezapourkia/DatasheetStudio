@@ -535,3 +535,18 @@ needed. Never include API keys, private prompts, account data, or user PDFs.
   (ZCode's own run).
 - Not verified: owner re-verification; Phase 13 blocked.
 - Commit: this commit
+
+## 2026-09-15 — Review round 5 — confirmations recorded
+
+- Contributor: ZCode (Z.ai, GLM)
+- Role: documentation of the owner-relayed reviewer confirmation
+- Scope: record the independent confirmation (85 related tests) of the
+  round-4 fixes; refresh HANDOFF's stale HEAD reference; keep Phase 12
+  open. No code changes.
+- Changed: REVIEW_FINDINGS §Round 5, HANDOFF confirmed-state header and
+  next-work wording, this entry.
+- Verification: none new (ZCode reran nothing this pass; the 85-test
+  result is the reviewer's independent run, recorded as such).
+- Not verified / still open: the real manufacturer pack, the Phase-11
+  outputs/scenarios editors, Phase 13 start.
+- Commit: this commit

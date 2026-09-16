@@ -272,3 +272,23 @@ Commit: `3f6df97`.
 Post-round-4 regression (ZCode's own run): **363 passed in 74.30 s**.
 HANDOFF's stale HEAD (483846b) corrected in the same documentation commit.
 Phase 13 remains NOT started.
+
+
+## Round 5 — Confirmation (owner/Codex, 2026-09-15)
+
+The three round-4 corrections were confirmed in an independent review:
+row-bound output identity across deletion, guaranteed close via the real
+`QThread.finished` signal, and finite material bounds. The reviewer's
+independent run: **85 related tests passed** against the round-4 fix
+commits (`fa34368`, `9c09222`, `3f6df97`; docs at `a0ebe56`).
+
+This confirmation does **not** complete Phase 12. Explicitly still open:
+
+1. A real, source-bound manufacturer magnetics pack (exact ordering codes,
+   per-field URL/licensing provenance) — the in-test TDK data is a fixture.
+2. The Phase-11 outputs/scenarios editors (isolation group, load range,
+   priority, rectifier/capacitor references, feedback participation,
+   scenario editing) — domain-only today.
+
+These two items are the ordered next work; Phase 13 remains blocked behind
+the Phase-12 gate.
