@@ -129,6 +129,20 @@ class MaterialRecord:
         _require(self.manufacturer, "سازنده جنس")
         _require(self.code, "کد جنس")
         _positive(self.permeability, "تراوایی")
+        # Round-4 fix: every bound must be a FINITE number first (NaN slips
+        # past ordering checks because all NaN comparisons are False).
+        for label, value in (
+            ("حداقل فرکانس", self.freq_min_khz),
+            ("حداکثر فرکانس", self.freq_max_khz),
+            ("حداقل دما", self.temp_min_c),
+            ("حداکثر دما", self.temp_max_c),
+        ):
+            if (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(float(value))
+            ):
+                raise CatalogValidationError(f"«{label}» باید عددی متناهی باشد.")
         if self.freq_min_khz >= self.freq_max_khz:
             raise CatalogValidationError("دامنهٔ فرکانس جنس نامعتبر است (min ≥ max).")
         if self.temp_min_c >= self.temp_max_c:
